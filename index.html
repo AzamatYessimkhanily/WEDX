@@ -425,12 +425,18 @@ body {
 
 /* КАТЕГОРИИ */
 .category-scroll {
-    display: flex;
+display: flex;
     overflow-x: auto;
     gap: 12px;
-    padding: 16px 0;
-    -webkit-overflow-scrolling: touch;
+    padding: 16px 4px; /* Чуть больше отступы по бокам */
+    -webkit-overflow-scrolling: touch; /* Важно для iOS */
     scrollbar-width: none;
+    
+    /* Самое важное исправление: */
+    touch-action: pan-x; 
+    
+    /* Чтобы не скроллилось случайно мышкой/нажатием */
+    overscroll-behavior-x: contain;
 }
 
 .category-scroll::-webkit-scrollbar {
@@ -489,13 +495,20 @@ body {
 
 /* ФИЛЬТРЫ */
 .filters-scroll {
-    display: flex;
+display: flex;
     overflow-x: auto;
-    gap: 8px;
-    padding: 12px 0;
-    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    padding: 16px 4px; /* Чуть больше отступы по бокам */
+    -webkit-overflow-scrolling: touch; /* Важно для iOS */
     scrollbar-width: none;
+    
+    /* Самое важное исправление: */
+    touch-action: pan-x; 
+    
+    /* Чтобы не скроллилось случайно мышкой/нажатием */
+    overscroll-behavior-x: contain; 
 }
+
 
 .filters-scroll::-webkit-scrollbar {
     display: none;
