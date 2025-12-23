@@ -1,0 +1,3578 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EventHub - Мобильное приложение</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+/* ОСНОВНЫЕ СТИЛИ МОБИЛЬНОГО ПРИЛОЖЕНИЯ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+    --primary: #000000;
+    --primary-dark: #1A1A1A;
+    --accent: #3A3A3A;
+    --background: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-light: #F8F8F8;
+    --text: #1A1A1A;
+    --text-muted: #666666;
+    --border: #E5E5E5;
+    --success: #4CAF50;
+    --warning: #FF9800;
+    --error: #F44336;
+    --tabbar-height: 60px;
+    --header-height: 60px;
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+    font-weight: 400;
+    overflow-x: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* КОНТЕЙНЕР ПРИЛОЖЕНИЯ */
+.app-container {
+    width: 100%;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+    position: relative;
+    overflow: hidden;
+    background: var(--background);
+}
+
+/* ЭКРАНЫ ПРИЛОЖЕНИЯ */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--background);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+    padding-bottom: calc(var(--tabbar-height) + var(--safe-area-bottom) + 10px);
+    opacity: 0;
+    transform: translateX(100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.screen.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+    z-index: 2;
+}
+
+/* ШАПКА ЭКРАНА */
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.header-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-btn:active {
+    background: var(--border);
+    transform: scale(0.92);
+}
+
+/* НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ */
+.tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: calc(var(--tabbar-height) + var(--safe-area-bottom));
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: var(--safe-area-bottom);
+    z-index: 1000;
+    backdrop-filter: blur(20px);
+}
+
+.tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    height: 100%;
+}
+
+.tab-item.active {
+    color: var(--text);
+}
+
+.tab-item:active {
+    transform: scale(0.95);
+}
+
+.tab-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.tab-indicator {
+    position: absolute;
+    top: 0;
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--text);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.tab-item.active .tab-indicator {
+    opacity: 1;
+}
+
+/* КОНТЕНТ ЭКРАНОВ */
+.screen-content {
+    padding: 16px;
+    padding-bottom: 80px;
+}
+
+/* КНОПКИ */
+.btn {
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: -0.2px;
+}
+
+.btn:active {
+    transform: translateY(2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+    background: var(--text);
+    color: white;
+    border: 1px solid var(--text);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:active {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-outline:active {
+    background: var(--surface-light);
+    border-color: var(--text);
+}
+
+.btn-secondary {
+    background: var(--surface-light);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:active {
+    background: var(--border);
+}
+
+.btn-sm {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-radius: 10px;
+}
+
+.btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-icon:active {
+    background: var(--surface-light);
+    transform: scale(0.95);
+}
+
+/* КАРТОЧКИ */
+.mobile-card {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.mobile-card:active {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border);
+}
+
+/* ПОИСК */
+.search-container {
+    position: relative;
+    margin: 16px 0;
+}
+
+.search-input {
+    width: 100%;
+    padding: 16px 48px 16px 48px;
+    border-radius: 12px;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 400;
+    letter-spacing: -0.2px;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--text);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 16px;
+}
+
+/* ГРИДЫ */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 12px 0;
+}
+
+/* ИСПОЛНИТЕЛИ */
+.performer-card-mobile {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: var(--shadow-sm);
+}
+
+.performer-card-mobile:active {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border);
+}
+
+.performer-image-mobile {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    background: var(--surface-light);
+}
+
+.performer-info-mobile {
+    padding: 16px;
+}
+
+.performer-name-mobile {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+}
+
+.performer-category-mobile {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: 400;
+}
+
+.performer-rating-mobile {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--warning);
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.performer-price-mobile {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+}
+
+/* КАТЕГОРИИ */
+.category-scroll {
+display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 16px 4px; /* Чуть больше отступы по бокам */
+    -webkit-overflow-scrolling: touch; /* Важно для iOS */
+    scrollbar-width: none;
+    
+    /* Самое важное исправление: */
+    touch-action: pan-x; 
+    
+    /* Чтобы не скроллилось случайно мышкой/нажатием */
+    overscroll-behavior-x: contain;
+}
+
+.category-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.category-item {
+    min-width: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.category-item:active {
+    background: var(--surface-light);
+    transform: scale(0.98);
+    border-color: var(--text);
+}
+
+.category-item.active {
+    background: var(--text);
+    border-color: var(--text);
+    color: white;
+}
+
+.category-icon {
+    font-size: 22px;
+    color: var(--text);
+    transition: color 0.2s;
+}
+
+.category-item.active .category-icon {
+    color: white;
+}
+
+.category-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: -0.1px;
+}
+
+.category-item.active .category-name {
+    color: white;
+}
+
+/* ФИЛЬТРЫ */
+.filters-scroll {
+display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 16px 4px; /* Чуть больше отступы по бокам */
+    -webkit-overflow-scrolling: touch; /* Важно для iOS */
+    scrollbar-width: none;
+    
+    /* Самое важное исправление: */
+    touch-action: pan-x; 
+    
+    /* Чтобы не скроллилось случайно мышкой/нажатием */
+    overscroll-behavior-x: contain; 
+}
+
+
+.filters-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.filter-btn {
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-btn:active {
+    background: var(--surface-light);
+}
+
+.filter-btn.active {
+    background: var(--text);
+    border-color: var(--text);
+    color: white;
+    font-weight: 600;
+}
+
+/* КАЛЕНДАРЬ */
+.calendar-mobile {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin: 12px 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.calendar-header-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.calendar-title-mobile {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.calendar-weekdays-mobile {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.calendar-weekday-mobile {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 6px;
+    font-size: 13px;
+}
+
+.calendar-days-mobile {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.calendar-day-mobile {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.calendar-day-mobile:active:not(.booked):not(.disabled) {
+    background: var(--text);
+    border-color: var(--text);
+    color: white;
+}
+
+.calendar-day-mobile.booked {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: var(--error);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.calendar-day-mobile.selected {
+    background: var(--text);
+    border-color: var(--text);
+    color: white;
+}
+
+.calendar-day-mobile.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: var(--surface-light);
+}
+
+/* МОДАЛЬНЫЕ ОКНА */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-content-mobile {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-bottom: calc(var(--safe-area-bottom) + 20px);
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.98);
+}
+
+.modal-header-mobile {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 1;
+}
+
+.modal-title-mobile {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: -0.3px;
+}
+
+.modal-close-mobile {
+    position: absolute;
+    right: 16px;
+    top: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-close-mobile:active {
+    background: var(--border);
+    transform: scale(0.95);
+}
+
+.modal-body-mobile {
+    padding: 20px 16px;
+}
+
+/* ЧАТ */
+.chat-header-mobile {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.chat-back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chat-back-btn:active {
+    background: var(--surface-light);
+    transform: scale(0.95);
+}
+
+.chat-messages-container {
+    padding: 20px 16px;
+    min-height: calc(100vh - 120px - var(--tabbar-height) - var(--safe-area-bottom));
+}
+
+.message-bubble {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    margin-bottom: 12px;
+    position: relative;
+    animation: messageSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    line-height: 1.5;
+}
+
+.message-sent {
+    background: var(--text);
+    margin-left: auto;
+    color: white;
+    border-bottom-right-radius: 6px;
+    box-shadow: var(--shadow-sm);
+}
+
+.message-received {
+    background: var(--surface-light);
+    margin-right: auto;
+    border-bottom-left-radius: 6px;
+    box-shadow: var(--shadow-sm);
+}
+
+.chat-input-container-mobile {
+    position: fixed;
+    bottom: calc(var(--tabbar-height) + var(--safe-area-bottom));
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+}
+
+.chat-input-mobile {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.chat-input-mobile:focus {
+    outline: none;
+    border-color: var(--text);
+    background: var(--surface);
+}
+
+.chat-send-btn-mobile {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--text);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+}
+
+.chat-send-btn-mobile:active {
+    background: var(--primary-dark);
+    transform: scale(0.95);
+}
+
+/* ФОРМЫ */
+.form-group-mobile {
+    margin-bottom: 20px;
+}
+
+.form-label-mobile {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    letter-spacing: -0.2px;
+}
+
+.form-input-mobile {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 400;
+}
+
+.form-input-mobile:focus {
+    outline: none;
+    border-color: var(--text);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+}
+
+.form-select-mobile {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 18px;
+    font-weight: 400;
+}
+
+.form-select-mobile:focus {
+    outline: none;
+    border-color: var(--text);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+}
+
+/* ТАБЫ */
+.tabs-mobile {
+    display: flex;
+    overflow-x: auto;
+    gap: 4px;
+    margin-bottom: 20px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+}
+
+.tabs-mobile::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-mobile {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 15px;
+    letter-spacing: -0.2px;
+}
+
+.tab-mobile.active {
+    color: var(--text);
+}
+
+.tab-mobile.active::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 20px;
+    right: 20px;
+    height: 3px;
+    background: var(--text);
+    border-radius: 2px;
+}
+
+/* ЛИЧНЫЙ КАБИНЕТ */
+.dashboard-grid-mobile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.dashboard-card-mobile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+}
+
+.dashboard-card-mobile:active {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* ПРОФИЛЬ */
+.profile-header-mobile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.profile-avatar-mobile {
+    width: 80px;
+    height: 80px;
+    border-radius: 40px;
+    object-fit: cover;
+    border: 3px solid var(--text);
+    box-shadow: var(--shadow-md);
+}
+
+.profile-info-mobile h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+}
+
+.profile-stats-mobile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 24px 0;
+}
+
+/* АНИМАЦИИ */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes messageSlide {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* UTILITY CLASSES */
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 12px; }
+.mb-3 { margin-bottom: 16px; }
+.mb-4 { margin-bottom: 20px; }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 12px; }
+.mt-3 { margin-top: 16px; }
+.mt-4 { margin-top: 20px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 8px; }
+.gap-2 { gap: 12px; }
+.gap-3 { gap: 16px; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
+/* БЭДЖИ */
+.badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-block;
+    letter-spacing: -0.1px;
+}
+.badge-pro {
+    background: var(--text);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+.badge-verified {
+    background: var(--success);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+/* СТАТУСЫ */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-block;
+    letter-spacing: -0.1px;
+}
+.status-active {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--success);
+}
+.status-pending {
+    background: rgba(255, 152, 0, 0.1);
+    color: var(--warning);
+}
+
+/* SCROLLBAR HIDDEN */
+::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+/* IOS SAFE AREAS */
+@supports (padding: max(0px)) {
+    .screen-content, .modal-body-mobile, .chat-messages-container {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+    }
+    
+    .app-header {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+    }
+}
+
+/* ПРЕЛОАДЕР */
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--background);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.preloader.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loader {
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+/* НОТИФИКАЦИИ */
+.notification {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 90%;
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.notification.success {
+    border-left: 4px solid var(--success);
+}
+
+.notification.error {
+    border-left: 4px solid var(--error);
+}
+
+/* ПУСТЫЕ СОСТОЯНИЯ */
+.empty-state {
+    text-align: center;
+    padding: 60px 16px;
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: var(--border);
+    margin-bottom: 20px;
+}
+
+/* ЦЕНЫ */
+.price-item-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.price-item-mobile:last-child {
+    border-bottom: none;
+}
+
+.price-item-info-mobile {
+    flex: 1;
+}
+
+.price-item-name-mobile {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 16px;
+    letter-spacing: -0.2px;
+}
+
+.price-item-desc-mobile {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.price-item-price-mobile {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+}
+
+/* ОТЗЫВЫ */
+.review-item-mobile {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.review-item-mobile:last-child {
+    border-bottom: none;
+}
+
+.review-header-mobile {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.review-author-info-mobile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.review-avatar-mobile {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.review-author-mobile {
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+}
+
+.review-date-mobile {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.review-text-mobile {
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+/* ПОРТФОЛИО */
+.portfolio-grid-mobile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.portfolio-item-mobile {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    background: var(--surface-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.portfolio-item-mobile:active {
+    transform: scale(0.98);
+    box-shadow: var(--shadow-md);
+}
+
+.portfolio-item-mobile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* КАЛЬКУЛЯТОР */
+.calculator-item-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 8px;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.calculator-item-mobile:active {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.calculator-item-info-mobile {
+    flex: 1;
+}
+
+.calculator-item-name-mobile {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 16px;
+    letter-spacing: -0.2px;
+}
+
+.calculator-item-category-mobile {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.calculator-item-price-mobile {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-right: 12px;
+}
+
+.calculator-item-remove-mobile {
+    padding: 8px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: var(--error);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.calculator-item-remove-mobile:active {
+    background: rgba(244, 67, 54, 0.1);
+    transform: scale(0.95);
+}
+
+.calculator-total-mobile {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.calculator-total-label-mobile {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.calculator-total-price-mobile {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+}
+
+/* ПЛАШКИ ТАРИФОВ */
+.pricing-card-mobile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+}
+
+.pricing-card-mobile:active {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.pricing-card-mobile.featured {
+    border-color: var(--text);
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+}
+
+.pricing-badge-mobile {
+    display: inline-block;
+    padding: 6px 12px;
+    background: var(--text);
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: -0.1px;
+}
+
+.pricing-title-mobile {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+}
+
+.pricing-price-mobile {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.pricing-period-mobile {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    font-size: 15px;
+    font-weight: 400;
+}
+
+.pricing-features-mobile {
+    list-style: none;
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.pricing-feature-mobile {
+    padding: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 400;
+}
+
+.pricing-feature-mobile i {
+    color: var(--success);
+    font-size: 14px;
+}
+
+/* МЕНЮ ЛИЧНОГО КАБИНЕТА */
+.dashboard-menu-mobile {
+    list-style: none;
+}
+
+.dashboard-menu-item-mobile {
+    padding: 16px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-weight: 600;
+    font-size: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    letter-spacing: -0.2px;
+    box-shadow: var(--shadow-sm);
+}
+
+.dashboard-menu-item-mobile:active {
+    background: var(--surface-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.dashboard-menu-item-mobile.active {
+    background: var(--text);
+    color: white;
+    border-color: var(--text);
+}
+
+.dashboard-menu-item-mobile.active i {
+    color: white;
+}
+
+/* ДЛЯ ОЧЕНЬ МАЛЕНЬКИХ ЭКРАНОВ */
+@media (max-width: 320px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .btn {
+        padding: 14px 16px;
+        font-size: 14px;
+    }
+    
+    .header-title {
+        font-size: 16px;
+        max-width: 150px;
+    }
+}
+</style>
+</head>
+<body>
+    <!-- ПРЕЛОАДЕР -->
+    <div class="preloader" id="preloader">
+        <div class="loader"></div>
+        <div style="color: var(--text-muted); font-size: 14px;">Загрузка приложения...</div>
+    </div>
+
+    <!-- КОНТЕЙНЕР ПРИЛОЖЕНИЯ -->
+    <div class="app-container">
+        <!-- ЭКРАН ГЛАВНАЯ -->
+        <div class="screen active" id="homeScreen">
+            <div class="app-header">
+                <div class="header-title">EventHub</div>
+                <div class="header-actions">
+                    <button class="header-btn" onclick="showNotification('Уведомления будут здесь')">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="header-btn" onclick="showScreen('dashboard')">
+                        <i class="fas fa-user"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="screen-content">
+                <!-- ГЕРОЙ СЕКЦИЯ -->
+                <div class="mobile-card" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white; border: none;">
+                    <h1 style="font-size: 24px; margin-bottom: 10px; font-family: 'Playfair Display';">Идеальный праздник без суеты</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin-bottom: 20px; font-size: 14px;">Бронируй артистов и подрядчиков за 5 минут</p>
+                    <div class="grid-2">
+                        <button class="btn btn-primary" onclick="showScreen('catalog')" style="background: white; color: var(--accent); font-size: 14px;">Найти исполнителей</button>
+                        <button class="btn btn-outline" onclick="showScreen('forPerformers')" style="border-color: white; color: white; font-size: 14px;">Стать исполнителем</button>
+                    </div>
+                </div>
+
+                <!-- ПОИСК -->
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Поиск исполнителей..." id="mobileSearch" oninput="handleSearch(this.value)">
+                </div>
+
+                <!-- КАТЕГОРИИ -->
+                <div class="category-scroll" id="categoriesScroll">
+                    <div class="category-item" onclick="filterByCategory('photo')">
+                        <i class="fas fa-camera category-icon"></i>
+                        <span class="category-name">Фото</span>
+                    </div>
+                    <div class="category-item" onclick="filterByCategory('video')">
+                        <i class="fas fa-video category-icon"></i>
+                        <span class="category-name">Видео</span>
+                    </div>
+                    <div class="category-item" onclick="filterByCategory('decor')">
+                        <i class="fas fa-palette category-icon"></i>
+                        <span class="category-name">Декор</span>
+                    </div>
+                    <div class="category-item" onclick="filterByCategory('pastry')">
+                        <i class="fas fa-birthday-cake category-icon"></i>
+                        <span class="category-name">Торты</span>
+                    </div>
+                    <div class="category-item" onclick="filterByCategory('show')">
+                        <i class="fas fa-music category-icon"></i>
+                        <span class="category-name">Шоу</span>
+                    </div>
+                    <div class="category-item" onclick="filterByCategory('host')">
+                        <i class="fas fa-microphone category-icon"></i>
+                        <span class="category-name">Ведущие</span>
+                    </div>
+                    <div class="category-item" onclick="filterByCategory('organizer')">
+                        <i class="fas fa-clipboard-list category-icon"></i>
+                        <span class="category-name">Организаторы</span>
+                    </div>
+                    <div class="category-item" onclick="filterByCategory('catering')">
+                        <i class="fas fa-utensils category-icon"></i>
+                        <span class="category-name">Кейтеринг</span>
+                    </div>
+                </div>
+
+                <!-- СТАТИСТИКА -->
+                <div class="grid-3">
+                    <div class="mobile-card text-center">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">1000+</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Исполнителей</div>
+                    </div>
+                    <div class="mobile-card text-center">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">4.9</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Рейтинг</div>
+                    </div>
+                    <div class="mobile-card text-center">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">24ч</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Бронирование</div>
+                    </div>
+                </div>
+
+                <!-- ТОП ИСПОЛНИТЕЛИ -->
+                <div class="flex justify-between items-center mb-2">
+                    <h2 style="font-size: 18px; font-weight: 600;">Топ исполнители</h2>
+                    <button class="btn-icon btn-sm" onclick="showScreen('catalog')">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div id="topPerformersMobile">
+                    <!-- Заполнится JavaScript -->
+                </div>
+
+                <!-- КАК ЭТО РАБОТАЕТ -->
+                <h2 style="font-size: 18px; margin: 20px 0 12px; font-weight: 600;">Как это работает</h2>
+                <div class="grid-2">
+                    <div class="mobile-card">
+                        <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; margin-bottom: 10px;">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3 style="font-size: 15px; margin-bottom: 6px;">Найдите</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">Исполнителя в каталоге</p>
+                    </div>
+                    <div class="mobile-card">
+                        <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; margin-bottom: 10px;">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h3 style="font-size: 15px; margin-bottom: 6px;">Забронируйте</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">Дату в календаре</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН КАТАЛОГ -->
+        <div class="screen" id="catalogScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('home')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Каталог исполнителей</div>
+                <button class="header-btn" onclick="showFiltersModal()">
+                    <i class="fas fa-filter"></i>
+                </button>
+            </div>
+            
+            <div class="screen-content">
+                <!-- ФИЛЬТРЫ -->
+                <div class="filters-scroll mb-3">
+                    <button class="filter-btn active" onclick="filterPerformers('all')">Все</button>
+                    <button class="filter-btn" onclick="filterPerformers('photo')">Фото</button>
+                    <button class="filter-btn" onclick="filterPerformers('video')">Видео</button>
+                    <button class="filter-btn" onclick="filterPerformers('decor')">Декор</button>
+                    <button class="filter-btn" onclick="filterPerformers('pastry')">Торты</button>
+                    <button class="filter-btn" onclick="filterPerformers('show')">Шоу</button>
+                    <button class="filter-btn" onclick="filterPerformers('host')">Ведущие</button>
+                    <button class="filter-btn" onclick="filterPerformers('pro')">PRO</button>
+                    <button class="filter-btn" onclick="filterPerformers('verified')">Проверенные</button>
+                </div>
+
+                <!-- ИСПОЛНИТЕЛИ -->
+                <div id="performersGridMobile">
+                    <!-- Заполнится JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ПРОФИЛЬ ИСПОЛНИТЕЛЯ -->
+        <div class="screen" id="profileScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('catalog')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Профиль исполнителя</div>
+                <button class="header-btn" onclick="addToFavorites()">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>
+            
+            <div class="screen-content">
+                <!-- ЗАГОЛОВОК ПРОФИЛЯ -->
+                <div class="profile-header-mobile">
+                    <img src="/placeholder.svg" alt="Avatar" class="profile-avatar-mobile" id="mobileProfileAvatar">
+                    <div class="profile-info-mobile">
+                        <h1 id="mobileProfileName">Имя исполнителя</h1>
+                        <div class="flex items-center gap-1 mb-1">
+                            <span class="performer-category-mobile" id="mobileProfileCategory">Фотограф</span>
+                            <span class="badge badge-pro" id="mobileProBadge" style="display: none; margin-left: 4px;">PRO</span>
+                            <span class="badge badge-verified" style="margin-left: 4px;">✓</span>
+                        </div>
+                        <div class="performer-rating-mobile">
+                            <i class="fas fa-star"></i>
+                            <span>4.9</span>
+                            <span style="color: var(--text-muted); font-size: 12px;">(127 отзывов)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- КНОПКИ ДЕЙСТВИЙ -->
+                <div class="grid-2 mb-3">
+                    <button class="btn btn-primary" onclick="openBookingModal()">
+                        <i class="fas fa-calendar-check"></i> Забронировать
+                    </button>
+                    <button class="btn btn-outline" onclick="openChatWithPerformer()">
+                        <i class="fas fa-comment"></i> Написать
+                    </button>
+                </div>
+
+                <!-- ОПИСАНИЕ -->
+                <div class="mobile-card mb-3">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;">Обо мне</h3>
+                    <p id="mobileProfileDescription" style="color: var(--text-muted); line-height: 1.5; font-size: 14px;">
+                        Профессиональный исполнитель с многолетним опытом...
+                    </p>
+                </div>
+
+                <!-- СТАТИСТИКА -->
+                <div class="profile-stats-mobile">
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--accent);">250+</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Мероприятий</div>
+                    </div>
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--accent);">98%</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Положительных</div>
+                    </div>
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--accent);">5 лет</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Опыт работы</div>
+                    </div>
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--accent);">24ч</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Ответ на заявку</div>
+                    </div>
+                </div>
+
+                <!-- КАЛЕНДАРЬ -->
+                <h3 style="font-size: 16px; margin: 16px 0 10px;">Календарь бронирования</h3>
+                <div class="calendar-mobile mb-3">
+                    <div class="calendar-header-mobile">
+                        <button class="btn-icon" onclick="changeMonth(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h3 class="calendar-title-mobile" id="mobileCalendarMonth">Январь 2025</h3>
+                        <button class="btn-icon" onclick="changeMonth(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-weekdays-mobile">
+                        <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+                    </div>
+                    <div class="calendar-days-mobile" id="mobileCalendarGrid">
+                        <!-- Заполнится JavaScript -->
+                    </div>
+                    <div class="flex justify-center gap-4 mt-3">
+                        <div class="flex items-center gap-1">
+                            <div style="width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 50%;"></div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Свободно</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <div style="width: 10px; height: 10px; background: var(--error); border-radius: 50%;"></div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Занято</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <div style="width: 10px; height: 10px; background: var(--success); border-radius: 50%;"></div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Выбрано</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ПОРТФОЛИО -->
+                <h3 style="font-size: 16px; margin: 16px 0 10px;">Портфолио</h3>
+                <div class="portfolio-grid-mobile" id="portfolioGridMobile">
+                    <!-- Заполнится JavaScript -->
+                </div>
+
+                <!-- ЦЕНЫ -->
+                <h3 style="font-size: 16px; margin: 16px 0 10px;">Прайс-лист</h3>
+                <div class="mobile-card mb-3">
+                    <div class="price-item-mobile">
+                        <div class="price-item-info-mobile">
+                            <div class="price-item-name-mobile">Базовый пакет</div>
+                            <div class="price-item-desc-mobile">2 часа работы</div>
+                        </div>
+                        <div class="price-item-price-mobile">25 000 ₸</div>
+                    </div>
+                    <div class="price-item-mobile">
+                        <div class="price-item-info-mobile">
+                            <div class="price-item-name-mobile">Стандарт</div>
+                            <div class="price-item-desc-mobile">4 часа работы + обработка</div>
+                        </div>
+                        <div class="price-item-price-mobile">45 000 ₸</div>
+                    </div>
+                    <div class="price-item-mobile">
+                        <div class="price-item-info-mobile">
+                            <div class="price-item-name-mobile">Премиум</div>
+                            <div class="price-item-desc-mobile">Полный день + альбом</div>
+                        </div>
+                        <div class="price-item-price-mobile">80 000 ₸</div>
+                    </div>
+                </div>
+
+                <!-- ОТЗЫВЫ -->
+                <h3 style="font-size: 16px; margin: 16px 0 10px;">Отзывы</h3>
+                <div class="mobile-card">
+                    <div class="review-item-mobile">
+                        <div class="review-header-mobile">
+                            <div class="review-author-info-mobile">
+                                <div class="review-avatar-mobile"></div>
+                                <div>
+                                    <div class="review-author-mobile">Анна Иванова</div>
+                                    <div style="display: flex; align-items: center; gap: 2px; color: var(--warning); font-size: 12px;">
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="review-date-mobile">15 янв 2025</div>
+                        </div>
+                        <p class="review-text-mobile">Отличный профессионал! Работал на нашей свадьбе, все гости остались довольны. Фотографии получились потрясающие.</p>
+                    </div>
+                    <div class="review-item-mobile">
+                        <div class="review-header-mobile">
+                            <div class="review-author-info-mobile">
+                                <div class="review-avatar-mobile"></div>
+                                <div>
+                                    <div class="review-author-mobile">Дмитрий Петров</div>
+                                    <div style="display: flex; align-items: center; gap: 2px; color: var(--warning); font-size: 12px;">
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="review-date-mobile">10 янв 2025</div>
+                        </div>
+                        <p class="review-text-mobile">Профессионально, пунктуально, качественно. Заказывали на корпоратив, результат превзошел ожидания. Спасибо!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ЛИЧНЫЙ КАБИНЕТ -->
+        <div class="screen" id="dashboardScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('home')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Личный кабинет</div>
+                <button class="header-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+            
+            <div class="screen-content">
+                <!-- ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ -->
+                <div class="mobile-card" style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background: var(--accent); border-radius: 30px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h2 id="mobileUserName" style="font-size: 18px; margin-bottom: 4px;">Гость</h2>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Войдите или зарегистрируйтесь</p>
+                    <div class="grid-2">
+                        <button class="btn btn-outline btn-sm" onclick="showAuthModal('login')">Войти</button>
+                        <button class="btn btn-primary btn-sm" onclick="showAuthModal('register')">Регистрация</button>
+                    </div>
+                </div>
+
+                <!-- СТАТИСТИКА -->
+                <div class="dashboard-grid-mobile">
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">3</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">События</div>
+                    </div>
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">8</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Бронирования</div>
+                    </div>
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">12</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Избранное</div>
+                    </div>
+                    <div class="dashboard-card-mobile">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">5</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Чаты</div>
+                    </div>
+                </div>
+
+                <!-- МЕНЮ ЛИЧНОГО КАБИНЕТА -->
+                <div class="mobile-card">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Меню</h3>
+                    <ul class="dashboard-menu-mobile">
+                        <li class="dashboard-menu-item-mobile active" onclick="showScreen('events')">
+                            <i class="fas fa-calendar"></i> Мои мероприятия
+                        </li>
+                        <li class="dashboard-menu-item-mobile" onclick="showScreen('bookings')">
+                            <i class="fas fa-bookmark"></i> Бронирования
+                        </li>
+                        <li class="dashboard-menu-item-mobile" onclick="showScreen('favorites')">
+                            <i class="fas fa-heart"></i> Избранное
+                        </li>
+                        <li class="dashboard-menu-item-mobile" onclick="showScreen('calculator')">
+                            <i class="fas fa-calculator"></i> Калькулятор
+                        </li>
+                        <li class="dashboard-menu-item-mobile" onclick="showScreen('requests')" id="performerRequestsItem" style="display: none;">
+                            <i class="fas fa-inbox"></i> Заявки
+                        </li>
+                        <li class="dashboard-menu-item-mobile" onclick="showScreen('calendarPerformer')" id="performerCalendarItem" style="display: none;">
+                            <i class="fas fa-calendar-alt"></i> Календарь
+                        </li>
+                        <li class="dashboard-menu-item-mobile" onclick="showScreen('profileEditor')" id="performerProfileItem" style="display: none;">
+                            <i class="fas fa-user-edit"></i> Редактор профиля
+                        </li>
+                        <li class="dashboard-menu-item-mobile" onclick="showScreen('pro')" id="performerProItem" style="display: none;">
+                            <i class="fas fa-crown"></i> PRO-аккаунт
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН МЕРОПРИЯТИЯ -->
+        <div class="screen" id="eventsScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Мои мероприятия</div>
+                <button class="header-btn" onclick="openEventModal()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Свадьба</h3>
+                            <p style="color: var(--text-muted); font-size: 13px;">15 февраля 2025</p>
+                        </div>
+                        <span class="badge badge-pro">Активное</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Ресторан "Империя", 18:00</p>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Гости: 50 человек</p>
+                    <p style="font-size: 14px;"><strong>Бюджет:</strong> 350 000 ₸</p>
+                    <div class="grid-2 mt-3">
+                        <button class="btn btn-outline btn-sm">Редактировать</button>
+                        <button class="btn btn-primary btn-sm" onclick="showScreen('bookings')">Бронирования</button>
+                    </div>
+                </div>
+
+                <div class="mobile-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">День рождения</h3>
+                            <p style="color: var(--text-muted); font-size: 13px;">25 февраля 2025</p>
+                        </div>
+                        <span class="badge badge-pro">Активное</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Дом, 16:00</p>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Гости: 20 человек</p>
+                    <p style="font-size: 14px;"><strong>Бюджет:</strong> 120 000 ₸</p>
+                    <div class="grid-2 mt-3">
+                        <button class="btn btn-outline btn-sm">Редактировать</button>
+                        <button class="btn btn-primary btn-sm" onclick="showScreen('bookings')">Бронирования</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН БРОНИРОВАНИЯ -->
+        <div class="screen" id="bookingsScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Мои бронирования</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 style="font-size: 16px; font-weight: 600;">Анна Петрова</h3>
+                        <span class="badge badge-verified">Подтверждено</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 4px;">Фотограф</p>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Свадьба • 15 февраля 2025</p>
+                    <p style="font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 12px;">45 000 ₸</p>
+                    <div class="grid-2">
+                        <button class="btn btn-outline btn-sm" onclick="openChatWithPerformer()">Написать</button>
+                        <button class="btn btn-secondary btn-sm">Детали</button>
+                    </div>
+                </div>
+
+                <div class="mobile-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 style="font-size: 16px; font-weight: 600;">Максим Волков</h3>
+                        <span class="badge badge-verified">Подтверждено</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 4px;">Ведущий</p>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Свадьба • 15 февраля 2025</p>
+                    <p style="font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 12px;">60 000 ₸</p>
+                    <div class="grid-2">
+                        <button class="btn btn-outline btn-sm" onclick="openChatWithPerformer()">Написать</button>
+                        <button class="btn btn-secondary btn-sm">Детали</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ИЗБРАННОЕ -->
+        <div class="screen" id="favoritesScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Избранное</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div id="favoritesGridMobile">
+                    <!-- Заполнится JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН КАЛЬКУЛЯТОР -->
+        <div class="screen" id="calculatorScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Калькулятор</div>
+                <button class="header-btn" onclick="clearCalculator()">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Ваши выбранные услуги</h3>
+                    <div id="calculatorItemsMobile">
+                        <div class="calculator-item-mobile">
+                            <div class="calculator-item-info-mobile">
+                                <div class="calculator-item-name-mobile">Анна Петрова</div>
+                                <div class="calculator-item-category-mobile">Фотограф</div>
+                            </div>
+                            <div class="calculator-item-price-mobile">45 000 ₸</div>
+                            <button class="calculator-item-remove-mobile" onclick="removeFromCalculator(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="calculator-item-mobile">
+                            <div class="calculator-item-info-mobile">
+                                <div class="calculator-item-name-mobile">Максим Волков</div>
+                                <div class="calculator-item-category-mobile">Ведущий</div>
+                            </div>
+                            <div class="calculator-item-price-mobile">60 000 ₸</div>
+                            <button class="calculator-item-remove-mobile" onclick="removeFromCalculator(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="calculator-total-mobile">
+                        <div class="calculator-total-label-mobile">Итого:</div>
+                        <div class="calculator-total-price-mobile" id="calculatorTotalMobile">105 000 ₸</div>
+                    </div>
+                    
+                    <button class="btn btn-primary mt-3" onclick="showScreen('catalog')">
+                        <i class="fas fa-plus"></i> Добавить исполнителей
+                    </button>
+                </div>
+
+                <div class="mobile-card mt-3">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Рекомендуемый бюджет</h3>
+                    <div style="display: grid; gap: 8px;">
+                        <div class="flex justify-between items-center">
+                            <span style="font-size: 14px;">Фотограф</span>
+                            <span style="color: var(--text-muted); font-size: 13px;">30 000 - 80 000 ₸</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span style="font-size: 14px;">Видеограф</span>
+                            <span style="color: var(--text-muted); font-size: 13px;">40 000 - 100 000 ₸</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span style="font-size: 14px;">Ведущий</span>
+                            <span style="color: var(--text-muted); font-size: 13px;">40 000 - 80 000 ₸</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span style="font-size: 14px;">DJ / Музыка</span>
+                            <span style="color: var(--text-muted); font-size: 13px;">30 000 - 70 000 ₸</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ЗАЯВКИ (для исполнителей) -->
+        <div class="screen" id="requestsScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Входящие заявки</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 style="font-size: 16px; font-weight: 600;">Иван Сидоров</h3>
+                        <span class="status-badge status-pending">Новая</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Свадьба • 20 марта 2025</p>
+                    <p style="font-size: 14px; margin-bottom: 12px;">Нужен фотограф на весь день. Свадьба на 60 человек.</p>
+                    <p style="font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 12px;">Бюджет: 50 000 ₸</p>
+                    <div class="grid-2">
+                        <button class="btn btn-primary btn-sm">Принять</button>
+                        <button class="btn btn-outline btn-sm">Отклонить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН КАЛЕНДАРЬ ИСПОЛНИТЕЛЯ -->
+        <div class="screen" id="calendarPerformerScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Управление календарем</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div class="calendar-mobile">
+                    <div class="calendar-header-mobile">
+                        <button class="btn-icon" onclick="changeMonthPerformer(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h3 class="calendar-title-mobile" id="mobileCalendarMonthPerformer">Январь 2025</h3>
+                        <button class="btn-icon" onclick="changeMonthPerformer(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-weekdays-mobile">
+                        <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+                    </div>
+                    <div class="calendar-days-mobile" id="mobileCalendarGridPerformer">
+                        <!-- Заполнится JavaScript -->
+                    </div>
+                </div>
+
+                <div class="mobile-card mt-3">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Предстоящие бронирования</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px;">15 февраля 2025</div>
+                                <div style="color: var(--text-muted); font-size: 13px;">Свадьба Ивановых</div>
+                            </div>
+                            <span class="badge badge-verified">Подтверждено</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px;">22 февраля 2025</div>
+                                <div style="color: var(--text-muted); font-size: 13px;">Корпоратив ООО "Ромашка"</div>
+                            </div>
+                            <span class="badge badge-verified">Подтверждено</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН РЕДАКТОР ПРОФИЛЯ -->
+        <div class="screen" id="profileEditorScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Редактор профиля</div>
+                <button class="header-btn" onclick="saveProfile()">
+                    <i class="fas fa-save"></i>
+                </button>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card mb-3">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Основная информация</h3>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Имя</label>
+                        <input type="text" class="form-input-mobile" value="Анна Петрова">
+                    </div>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Категория</label>
+                        <select class="form-select-mobile">
+                            <option>Фотограф</option>
+                            <option>Видеограф</option>
+                            <option>Декор</option>
+                            <option>Кондитер</option>
+                        </select>
+                    </div>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Описание</label>
+                        <textarea class="form-input-mobile" style="height: 100px; resize: vertical;">Профессиональный фотограф с 5-летним опытом работы...</textarea>
+                    </div>
+                </div>
+
+                <div class="mobile-card mb-3">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Прайс-лист</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div class="flex items-center gap-2">
+                            <input type="text" class="form-input-mobile" value="Базовый пакет" style="flex: 2;">
+                            <input type="text" class="form-input-mobile" value="25000" style="flex: 1;">
+                            <button class="btn-icon">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" class="form-input-mobile" value="Стандарт" style="flex: 2;">
+                            <input type="text" class="form-input-mobile" value="45000" style="flex: 1;">
+                            <button class="btn-icon">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline mt-3">
+                        <i class="fas fa-plus"></i> Добавить услугу
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ЧАТ -->
+        <div class="screen" id="chatScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Сообщения</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card" style="padding: 0; overflow: hidden;">
+                    <div class="flex items-center justify-between" onclick="openChat(1)" style="padding: 14px; border-bottom: 1px solid var(--border); cursor: pointer;">
+                        <div class="flex items-center gap-3">
+                            <div style="width: 44px; height: 44px; background: var(--accent); border-radius: 22px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
+                                АП
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px;">Анна Петрова</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Добрый день! Подтверждаю бронирование</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 11px; color: var(--text-muted);">10:30</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between" onclick="openChat(2)" style="padding: 14px; border-bottom: 1px solid var(--border); cursor: pointer;">
+                        <div class="flex items-center gap-3">
+                            <div style="width: 44px; height: 44px; background: var(--success); border-radius: 22px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
+                                МВ
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px;">Максим Волков</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">Спасибо за выбор! Жду встречи</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 11px; color: var(--text-muted);">Вчера</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ЧАТ ДЕТАЛИ -->
+        <div class="screen" id="chatDetailScreen" style="padding-bottom: 120px;">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('chat')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div style="flex: 1; text-align: center;">
+                    <div class="header-title" id="chatWithName">Анна Петрова</div>
+                    <div style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-circle" style="font-size: 6px; color: var(--success);"></i> Онлайн</div>
+                </div>
+                <button class="header-btn" onclick="callPerformer()">
+                    <i class="fas fa-phone"></i>
+                </button>
+            </div>
+            
+            <div class="chat-messages-container" id="chatMessagesContainer">
+                <!-- Сообщения загружаются динамически -->
+            </div>
+
+            <div class="chat-input-container-mobile">
+                <input type="text" class="chat-input-mobile" placeholder="Введите сообщение..." id="chatInput">
+                <button class="chat-send-btn-mobile" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ЭКРАН PRO-АККАУНТ -->
+        <div class="screen" id="proScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('dashboard')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">PRO-аккаунт</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white; border: none; text-align: center;">
+                    <h1 style="font-size: 22px; margin-bottom: 8px; font-family: 'Playfair Display';">PRO-аккаунт для исполнителей</h1>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 14px;">Получите больше заказов с расширенными возможностями</p>
+                </div>
+
+                <div class="pricing-card-mobile featured mb-3">
+                    <div class="pricing-badge-mobile">Популярный</div>
+                    <div class="pricing-title-mobile">PRO</div>
+                    <div class="pricing-price-mobile">9 990 ₸</div>
+                    <div class="pricing-period-mobile">в месяц</div>
+                    <ul class="pricing-features-mobile">
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Приоритет в поиске</span>
+                        </li>
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Значок PRO в профиле</span>
+                        </li>
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Возможность откликаться на заявки</span>
+                        </li>
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Комиссия 8% вместо 10%</span>
+                        </li>
+                    </ul>
+                    <button class="btn btn-primary">Подключить PRO</button>
+                </div>
+
+                <div class="pricing-card-mobile mb-3">
+                    <div class="pricing-title-mobile">Premium</div>
+                    <div class="pricing-price-mobile">19 990 ₸</div>
+                    <div class="pricing-period-mobile">в месяц</div>
+                    <ul class="pricing-features-mobile">
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Все возможности PRO</span>
+                        </li>
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Топ позиции в каталоге</span>
+                        </li>
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Персональный менеджер</span>
+                        </li>
+                        <li class="pricing-feature-mobile">
+                            <i class="fas fa-check"></i>
+                            <span>Комиссия 6%</span>
+                        </li>
+                    </ul>
+                    <button class="btn btn-outline">Подключить Premium</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ДЛЯ ИСПОЛНИТЕЛЕЙ -->
+        <div class="screen" id="forPerformersScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('home')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Для исполнителей</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white; border: none; text-align: center;">
+                    <h1 style="font-size: 22px; margin-bottom: 8px; font-family: 'Playfair Display';">Для исполнителей</h1>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 14px;">Занимайся творчеством, а не переговорами</p>
+                </div>
+
+                <div class="dashboard-grid-mobile mt-3">
+                    <div class="dashboard-card-mobile">
+                        <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; margin: 0 auto 10px;">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h3 style="font-size: 15px; margin-bottom: 6px;">Единый календарь</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">Все заказы в одном месте</p>
+                    </div>
+                    <div class="dashboard-card-mobile">
+                        <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; margin: 0 auto 10px;">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3 style="font-size: 15px; margin-bottom: 6px;">Безопасные сделки</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">Гарантия оплаты</p>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary mt-3" onclick="showAuthModal('register', 'performer')">
+                    Начать работать
+                </button>
+            </div>
+        </div>
+
+        <!-- ЭКРАН КАК ЭТО РАБОТАЕТ -->
+        <div class="screen" id="howItWorksScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('home')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Как это работает</div>
+                <div class="header-btn" style="opacity: 0;"></div>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white; border: none; text-align: center;">
+                    <h1 style="font-size: 22px; margin-bottom: 8px; font-family: 'Playfair Display';">Как это работает</h1>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 14px;">Простой процесс от поиска до успешного мероприятия</p>
+                </div>
+
+                <div style="display: grid; gap: 16px; margin-top: 16px;">
+                    <div class="flex items-start gap-3">
+                        <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; flex-shrink: 0;">
+                            1
+                        </div>
+                        <div>
+                            <h3 style="font-size: 16px; margin-bottom: 4px;">Найдите исполнителя</h3>
+                            <p style="color: var(--text-muted); font-size: 14px;">Используйте поиск и фильтры по категориям</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; flex-shrink: 0;">
+                            2
+                        </div>
+                        <div>
+                            <h3 style="font-size: 16px; margin-bottom: 4px;">Забронируйте дату</h3>
+                            <p style="color: var(--text-muted); font-size: 14px;">Выберите свободную дату в календаре</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; flex-shrink: 0;">
+                            3
+                        </div>
+                        <div>
+                            <h3 style="font-size: 16px; margin-bottom: 4px;">Безопасная оплата</h3>
+                            <p style="color: var(--text-muted); font-size: 14px;">Оплатите через защищенную сделку</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ЕЩЕ (МЕНЮ) -->
+        <div class="screen" id="moreScreen">
+            <div class="app-header">
+                <button class="header-btn" onclick="showScreen('home')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="header-title">Меню</div>
+                <button class="header-btn" onclick="showNotification('Настройки')">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+            
+            <div class="screen-content">
+                <div class="mobile-card">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Приложение</h3>
+                    <div style="display: grid; gap: 8px;">
+                        <div class="flex items-center justify-between" onclick="showScreen('howItWorks')" style="padding: 12px; border-radius: 10px; background: var(--surface-light); cursor: pointer;">
+                            <div class="flex items-center gap-3">
+                                <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <span style="font-weight: 500; font-size: 15px;">Как это работает</span>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color: var(--text-muted);"></i>
+                        </div>
+
+                        <div class="flex items-center justify-between" onclick="showScreen('forPerformers')" style="padding: 12px; border-radius: 10px; background: var(--surface-light); cursor: pointer;">
+                            <div class="flex items-center gap-3">
+                                <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <span style="font-weight: 500; font-size: 15px;">Для исполнителей</span>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color: var(--text-muted);"></i>
+                        </div>
+
+                        <div class="flex items-center justify-between" onclick="showScreen('pro')" style="padding: 12px; border-radius: 10px; background: var(--surface-light); cursor: pointer;">
+                            <div class="flex items-center gap-3">
+                                <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                <span style="font-weight: 500; font-size: 15px;">PRO-аккаунт</span>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color: var(--text-muted);"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline mt-3" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Выйти из аккаунта
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ -->
+    <div class="tabbar">
+        <div class="tab-item active" onclick="showScreen('home')">
+            <div class="tab-indicator"></div>
+            <i class="fas fa-home tab-icon"></i>
+            <span class="tab-label">Главная</span>
+        </div>
+        <div class="tab-item" onclick="showScreen('catalog')">
+            <div class="tab-indicator"></div>
+            <i class="fas fa-th-large tab-icon"></i>
+            <span class="tab-label">Каталог</span>
+        </div>
+        <div class="tab-item" onclick="showScreen('chat')">
+            <div class="tab-indicator"></div>
+            <i class="fas fa-comment tab-icon"></i>
+            <span class="tab-label">Чат</span>
+        </div>
+        <div class="tab-item" onclick="showScreen('dashboard')">
+            <div class="tab-indicator"></div>
+            <i class="fas fa-user tab-icon"></i>
+            <span class="tab-label">Кабинет</span>
+        </div>
+        <div class="tab-item" onclick="showScreen('more')">
+            <div class="tab-indicator"></div>
+            <i class="fas fa-ellipsis-h tab-icon"></i>
+            <span class="tab-label">Еще</span>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-content-mobile">
+            <div class="modal-header-mobile">
+                <button class="modal-close-mobile" onclick="closeAuthModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="modal-title-mobile" id="authModalTitle">Вход</h2>
+            </div>
+            
+            <div class="modal-body-mobile">
+                <div class="tabs-mobile mb-3">
+                    <div class="tab-mobile active" onclick="switchAuthTab('login')">Вход</div>
+                    <div class="tab-mobile" onclick="switchAuthTab('register')">Регистрация</div>
+                </div>
+
+                <!-- ФОРМА ВХОДА -->
+                <div id="loginFormMobile">
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Email</label>
+                        <input type="email" class="form-input-mobile" placeholder="example@mail.com" required>
+                    </div>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Пароль</label>
+                        <input type="password" class="form-input-mobile" placeholder="••••••••" required>
+                    </div>
+                    <button class="btn btn-primary" onclick="handleLoginMobile()">Войти</button>
+                    <div class="text-center mt-2">
+                        <a href="#" style="color: var(--accent); font-size: 13px;">Забыли пароль?</a>
+                    </div>
+                </div>
+
+                <!-- ФОРМА РЕГИСТРАЦИИ -->
+                <div id="registerFormMobile" style="display: none;">
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Имя</label>
+                        <input type="text" class="form-input-mobile" placeholder="Ваше имя" required>
+                    </div>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Email</label>
+                        <input type="email" class="form-input-mobile" placeholder="example@mail.com" required>
+                    </div>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Телефон</label>
+                        <input type="tel" class="form-input-mobile" placeholder="+7 (___) ___-__-__" required>
+                    </div>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Пароль</label>
+                        <input type="password" class="form-input-mobile" placeholder="••••••••" required>
+                    </div>
+                    <div class="form-group-mobile">
+                        <label class="form-label-mobile">Тип аккаунта</label>
+                        <select class="form-select-mobile" id="accountTypeMobile" onchange="toggleCategoryField()">
+                            <option value="client">Заказчик</option>
+                            <option value="performer">Исполнитель</option>
+                        </select>
+                    </div>
+                    <div class="form-group-mobile" id="categoryGroupMobile" style="display: none;">
+                        <label class="form-label-mobile">Категория услуг</label>
+                        <select class="form-select-mobile">
+                            <option>Фотограф</option>
+                            <option>Видеограф</option>
+                            <option>Декор</option>
+                            <option>Кондитер</option>
+                            <option>Шоу-программы</option>
+                            <option>Ведущий</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="handleRegisterMobile()">Зарегистрироваться</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО БРОНИРОВАНИЯ -->
+    <div class="modal-overlay" id="bookingModal">
+        <div class="modal-content-mobile">
+            <div class="modal-header-mobile">
+                <button class="modal-close-mobile" onclick="closeBookingModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="modal-title-mobile">Бронирование</h2>
+            </div>
+            
+            <div class="modal-body-mobile">
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Выбранная дата</label>
+                    <input type="text" class="form-input-mobile" id="selectedDateMobile" readonly>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Тип мероприятия</label>
+                    <select class="form-select-mobile">
+                        <option>Свадьба</option>
+                        <option>День рождения</option>
+                        <option>Корпоратив</option>
+                        <option>Юбилей</option>
+                    </select>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Количество гостей</label>
+                    <input type="number" class="form-input-mobile" placeholder="50">
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Выберите пакет услуг</label>
+                    <select class="form-select-mobile">
+                        <option>Базовый - 25 000 ₸</option>
+                        <option>Стандарт - 45 000 ₸</option>
+                        <option>Премиум - 80 000 ₸</option>
+                    </select>
+                </div>
+                
+                <div class="mobile-card mb-3">
+                    <h4 style="font-size: 16px; margin-bottom: 8px;">Итого к оплате</h4>
+                    <div style="font-size: 24px; font-weight: 700; color: var(--accent);">45 000 ₸</div>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Оплата через безопасную сделку</p>
+                </div>
+                
+                <button class="btn btn-primary" onclick="confirmBookingMobile()">Забронировать и оплатить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ МЕРОПРИЯТИЯ -->
+    <div class="modal-overlay" id="eventModal">
+        <div class="modal-content-mobile">
+            <div class="modal-header-mobile">
+                <button class="modal-close-mobile" onclick="closeEventModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="modal-title-mobile">Новое мероприятие</h2>
+            </div>
+            
+            <div class="modal-body-mobile">
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Название</label>
+                    <input type="text" class="form-input-mobile" placeholder="Свадьба" required>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Дата</label>
+                    <input type="date" class="form-input-mobile" required>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Время</label>
+                    <input type="time" class="form-input-mobile" required>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Место проведения</label>
+                    <input type="text" class="form-input-mobile" placeholder="Ресторан Империя" required>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Количество гостей</label>
+                    <input type="number" class="form-input-mobile" placeholder="50" required>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Бюджет (₸)</label>
+                    <input type="number" class="form-input-mobile" placeholder="350000">
+                </div>
+                
+                <button class="btn btn-primary" onclick="handleEventCreateMobile()">Создать мероприятие</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ФИЛЬТРОВ -->
+    <div class="modal-overlay" id="filtersModal">
+        <div class="modal-content-mobile">
+            <div class="modal-header-mobile">
+                <button class="modal-close-mobile" onclick="closeFiltersModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="modal-title-mobile">Фильтры</h2>
+            </div>
+            
+            <div class="modal-body-mobile">
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Категория</label>
+                    <select class="form-select-mobile">
+                        <option>Все категории</option>
+                        <option>Фотографы</option>
+                        <option>Видеографы</option>
+                        <option>Декор</option>
+                        <option>Кондитеры</option>
+                    </select>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Цена от</label>
+                    <input type="number" class="form-input-mobile" placeholder="0">
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Цена до</label>
+                    <input type="number" class="form-input-mobile" placeholder="100000">
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Рейтинг от</label>
+                    <select class="form-select-mobile">
+                        <option>Любой</option>
+                        <option>4.5 и выше</option>
+                        <option>4.0 и выше</option>
+                        <option>3.5 и выше</option>
+                    </select>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Только PRO</label>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <input type="checkbox" id="proFilter" style="width: 20px; height: 20px;">
+                        <label for="proFilter" style="font-size: 14px;">Показывать только PRO-исполнителей</label>
+                    </div>
+                </div>
+                
+                <div class="form-group-mobile">
+                    <label class="form-label-mobile">Только проверенные</label>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <input type="checkbox" id="verifiedFilter" style="width: 20px; height: 20px;">
+                        <label for="verifiedFilter" style="font-size: 14px;">Показывать только проверенных</label>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary mt-3" onclick="applyFilters()">Применить фильтры</button>
+                <button class="btn btn-outline mt-2" onclick="resetFilters()">Сбросить фильтры</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- УВЕДОМЛЕНИЕ -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+        <div id="notificationText">Сообщение отправлено</div>
+    </div>
+
+<script>
+    // =================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===================
+    let currentUser = null;
+    let selectedPerformer = null;
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let selectedDate = null;
+    let currentFilter = 'all';
+    let currentScreen = 'home';
+    let activeChat = null;
+
+    // Данные исполнителей (все как в оригинале)
+    const performers = [
+        {
+            id: 1,
+            name: 'Анна Петрова',
+            category: 'photo',
+            categoryName: 'Фотограф',
+            image: 'https://images.unsplash.com/photo-1601933470096-0e34634ffcde?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            rating: 4.9,
+            reviews: 127,
+            price: 45000,
+            isPro: true,
+            isVerified: true,
+            description: 'Профессиональный фотограф с 5-летним опытом работы на свадьбах и корпоративах. Индивидуальный подход к каждому клиенту.',
+            portfolio: [
+                'https://images.unsplash.com/photo-1606800052052-a08af7148866?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1519741497674-611481863552?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            ]
+        },
+        {
+            id: 2,
+            name: 'Максим Волков',
+            category: 'host',
+            categoryName: 'Ведущий',
+            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            rating: 4.8,
+            reviews: 95,
+            price: 60000,
+            isPro: true,
+            isVerified: true,
+            description: 'Опытный ведущий мероприятий. Работаю в разных форматах: свадьбы, корпоративы, дни рождения.',
+            portfolio: [
+                'https://images.unsplash.com/photo-1544465544-1b71aee9dfa3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1530023367847-a683933f4172?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            ]
+        },
+        {
+            id: 3,
+            name: 'DJ Artem',
+            category: 'show',
+            categoryName: 'DJ / Музыка',
+            image: 'https://images.unsplash.com/photo-1566753323558-f4e0952af115?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            rating: 4.9,
+            reviews: 143,
+            price: 50000,
+            isPro: true,
+            isVerified: true,
+            description: 'Профессиональный DJ с собственным оборудованием. Работаю на любых мероприятиях.',
+            portfolio: [
+                'https://images.unsplash.com/photo-1545128485-c400e7702796?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1531913764164-f85c52e6e654?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            ]
+        },
+        {
+            id: 4,
+            name: 'Елена Смирнова',
+            category: 'pastry',
+            categoryName: 'Кондитер',
+            image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            rating: 5.0,
+            reviews: 89,
+            price: 25000,
+            isPro: false,
+            isVerified: true,
+            description: 'Создаю торты на заказ для любых мероприятий. Более 100 выполненных заказов.',
+            portfolio: [
+                'https://images.unsplash.com/photo-1535141192574-5d4897c12636?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1488477181946-6428a0291777?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1602351447937-745cb720612f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            ]
+        },
+        {
+            id: 5,
+            name: 'Дмитрий Козлов',
+            category: 'video',
+            categoryName: 'Видеограф',
+            image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            rating: 4.7,
+            reviews: 76,
+            price: 55000,
+            isPro: true,
+            isVerified: true,
+            description: 'Профессиональная видеосъемка мероприятий. Современное оборудование, качественный монтаж.',
+            portfolio: [
+                'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1601506521937-24620312934a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            ]
+        },
+        {
+            id: 6,
+            name: 'Ольга Новикова',
+            category: 'decor',
+            categoryName: 'Декор',
+            image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            rating: 4.9,
+            reviews: 112,
+            price: 70000,
+            isPro: true,
+            isVerified: true,
+            description: 'Оформление мероприятий любой сложности. Создаю уникальный декор для вашего праздника.',
+            portfolio: [
+                'https://images.unsplash.com/photo-1478146896981-b80fe463b330?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1505932794465-147d1f1b2c97?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            ]
+        }
+    ];
+
+    // =================== ИНИЦИАЛИЗАЦИЯ ===================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Установка высоты для мобильных устройств
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+        
+        window.addEventListener('resize', () => {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        });
+
+        // Загрузка данных
+        setTimeout(() => {
+            document.getElementById('preloader').classList.add('hidden');
+            renderTopPerformersMobile();
+            renderPerformersGridMobile();
+            renderCalendarMobile();
+            updateAuthUI();
+            
+            // Скрыть все модальные окна
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }, 800);
+    });
+
+    // =================== НАВИГАЦИЯ ===================
+    function showScreen(screenName) {
+        // Скрыть все экраны
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        
+        // Показать нужный экран
+        const screenElement = document.getElementById(screenName + 'Screen');
+        if (screenElement) {
+            screenElement.classList.add('active');
+            currentScreen = screenName;
+            
+            // Обновить активную вкладку в таббаре
+            updateTabbar(screenName);
+            
+            // Прокрутить наверх
+            setTimeout(() => {
+                screenElement.scrollTop = 0;
+            }, 10);
+        }
+        
+        // Скрыть модальные окна
+        closeAllModals();
+    }
+
+    function updateTabbar(screenName) {
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        const tabMap = {
+            'home': 0,
+            'catalog': 1,
+            'chat': 2,
+            'dashboard': 3,
+            'more': 4
+        };
+        
+        if (tabMap[screenName] !== undefined) {
+            document.querySelectorAll('.tab-item')[tabMap[screenName]].classList.add('active');
+        }
+    }
+
+    // =================== РЕНДЕРИНГ ДАННЫХ ===================
+    function renderTopPerformersMobile() {
+        const container = document.getElementById('topPerformersMobile');
+        const topPerformers = performers.slice(0, 3);
+        container.innerHTML = topPerformers.map(p => createPerformerCardMobile(p)).join('');
+    }
+
+    function renderPerformersGridMobile() {
+        const container = document.getElementById('performersGridMobile');
+        let filtered = performers;
+        
+        if (currentFilter !== 'all') {
+            if (currentFilter === 'pro') {
+                filtered = performers.filter(p => p.isPro);
+            } else if (currentFilter === 'verified') {
+                filtered = performers.filter(p => p.isVerified);
+            } else {
+                filtered = performers.filter(p => p.category === currentFilter);
+            }
+        }
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-search"></i></div><p>Исполнителей не найдено</p></div>';
+        } else {
+            container.innerHTML = filtered.map(p => createPerformerCardMobile(p)).join('');
+        }
+    }
+
+    function createPerformerCardMobile(performer) {
+        return `
+            <div class="performer-card-mobile" onclick="showPerformerProfileMobile(${performer.id})">
+                <img src="${performer.image}" alt="${performer.name}" class="performer-image-mobile">
+                <div class="performer-info-mobile">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="performer-name-mobile">${performer.name}</div>
+                        <div class="flex gap-1">
+                            ${performer.isPro ? '<span class="badge badge-pro">PRO</span>' : ''}
+                            ${performer.isVerified ? '<span class="badge badge-verified">✓</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="performer-category-mobile">${performer.categoryName}</div>
+                    <div class="performer-rating-mobile">
+                        <i class="fas fa-star"></i>
+                        <span>${performer.rating}</span>
+                        <span style="color: var(--text-muted); font-size: 12px;">(${performer.reviews})</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="performer-price-mobile">${performer.price.toLocaleString()} ₸</div>
+                        <button class="btn-icon" onclick="event.stopPropagation(); addToFavoritesMobile(${performer.id})">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function showPerformerProfileMobile(id) {
+        selectedPerformer = performers.find(p => p.id === id);
+        if (!selectedPerformer) return;
+        
+        document.getElementById('mobileProfileName').textContent = selectedPerformer.name;
+        document.getElementById('mobileProfileCategory').textContent = selectedPerformer.categoryName;
+        document.getElementById('mobileProfileDescription').textContent = selectedPerformer.description;
+        document.getElementById('mobileProfileAvatar').src = selectedPerformer.image;
+        
+        if (selectedPerformer.isPro) {
+            document.getElementById('mobileProBadge').style.display = 'inline-block';
+        } else {
+            document.getElementById('mobileProBadge').style.display = 'none';
+        }
+        
+        // Рендерим портфолио
+        const portfolioGrid = document.getElementById('portfolioGridMobile');
+        if (selectedPerformer.portfolio && selectedPerformer.portfolio.length > 0) {
+            portfolioGrid.innerHTML = selectedPerformer.portfolio.map(img => `
+                <div class="portfolio-item-mobile">
+                    <img src="${img}" alt="Portfolio">
+                </div>
+            `).join('');
+        }
+        
+        renderCalendarMobile();
+        showScreen('profile');
+    }
+
+    // =================== ФИЛЬТРАЦИЯ И ПОИСК ===================
+    function filterByCategory(category) {
+        currentFilter = category;
+        showScreen('catalog');
+        renderPerformersGridMobile();
+    }
+
+    function filterPerformers(filter) {
+        currentFilter = filter;
+        
+        // Обновить активные кнопки фильтров
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        renderPerformersGridMobile();
+    }
+
+    function handleSearch(query) {
+        if (query.length > 2) {
+            showScreen('catalog');
+            const container = document.getElementById('performersGridMobile');
+            const filtered = performers.filter(p => 
+                p.name.toLowerCase().includes(query.toLowerCase()) || 
+                p.categoryName.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-search"></i></div><p>По запросу "' + query + '" ничего не найдено</p></div>';
+            } else {
+                container.innerHTML = filtered.map(p => createPerformerCardMobile(p)).join('');
+            }
+        }
+    }
+
+    // =================== КАЛЕНДАРЬ ===================
+    function renderCalendarMobile() {
+        const grid = document.getElementById('mobileCalendarGrid');
+        const monthTitle = document.getElementById('mobileCalendarMonth');
+        
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        
+        monthTitle.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        
+        // Adjust for Monday start
+        const startDay = firstDay === 0 ? 6 : firstDay - 1;
+        
+        let html = '';
+        
+        // Empty cells
+        for (let i = 0; i < startDay; i++) {
+            html += '<div class="calendar-day-mobile disabled"></div>';
+        }
+        
+        // Days
+        const bookedDays = [5, 12, 18, 25];
+        const today = new Date();
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(currentYear, currentMonth, day);
+            const isPast = date < today;
+            const isBooked = bookedDays.includes(day);
+            
+            let classes = 'calendar-day-mobile';
+            if (isPast) classes += ' disabled';
+            if (isBooked) classes += ' booked';
+            
+            html += `<div class="${classes}" onclick="selectDateMobile(${day}, event)">${day}</div>`;
+        }
+        
+        grid.innerHTML = html;
+    }
+
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        } else if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        renderCalendarMobile();
+    }
+
+    function changeMonthPerformer(delta) {
+        currentMonth += delta;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        } else if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        
+        const grid = document.getElementById('mobileCalendarGridPerformer');
+        const monthTitle = document.getElementById('mobileCalendarMonthPerformer');
+        
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        
+        monthTitle.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const startDay = firstDay === 0 ? 6 : firstDay - 1;
+        
+        let html = '';
+        
+        for (let i = 0; i < startDay; i++) {
+            html += '<div class="calendar-day-mobile disabled"></div>';
+        }
+        
+        const bookedDays = [5, 12, 18, 25];
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isBooked = bookedDays.includes(day);
+            let classes = 'calendar-day-mobile';
+            if (isBooked) classes += ' booked';
+            
+            html += `<div class="${classes}" onclick="toggleBooking(${day}, event)">${day}</div>`;
+        }
+        
+        grid.innerHTML = html;
+    }
+
+    function selectDateMobile(day, event) {
+        if (event.target.classList.contains('disabled') || event.target.classList.contains('booked')) {
+            return;
+        }
+        
+        selectedDate = new Date(currentYear, currentMonth, day);
+        
+        // Update selected state
+        document.querySelectorAll('#mobileCalendarGrid .calendar-day-mobile').forEach(d => {
+            d.classList.remove('selected');
+        });
+        event.target.classList.add('selected');
+        
+        // Open booking modal
+        openBookingModal();
+    }
+
+    function toggleBooking(day, event) {
+        event.target.classList.toggle('booked');
+    }
+
+    // =================== АВТОРИЗАЦИЯ ===================
+    function showAuthModal(type, accountType = 'client') {
+        document.getElementById('authModal').style.display = 'flex';
+        switchAuthTab(type);
+        
+        if (accountType === 'performer') {
+            document.getElementById('accountTypeMobile').value = 'performer';
+            document.getElementById('categoryGroupMobile').style.display = 'block';
+        }
+    }
+
+    function closeAuthModal() {
+        document.getElementById('authModal').style.display = 'none';
+    }
+
+    function toggleCategoryField() {
+        const accountType = document.getElementById('accountTypeMobile').value;
+        const categoryGroup = document.getElementById('categoryGroupMobile');
+        categoryGroup.style.display = accountType === 'performer' ? 'block' : 'none';
+    }
+
+    function switchAuthTab(tab) {
+        document.querySelectorAll('#authModal .tab-mobile').forEach(t => t.classList.remove('active'));
+        
+        if (tab === 'login') {
+            document.querySelector('#authModal .tab-mobile:first-child').classList.add('active');
+            document.getElementById('loginFormMobile').style.display = 'block';
+            document.getElementById('registerFormMobile').style.display = 'none';
+            document.getElementById('authModalTitle').textContent = 'Вход';
+        } else {
+            document.querySelector('#authModal .tab-mobile:last-child').classList.add('active');
+            document.getElementById('loginFormMobile').style.display = 'none';
+            document.getElementById('registerFormMobile').style.display = 'block';
+            document.getElementById('authModalTitle').textContent = 'Регистрация';
+        }
+    }
+
+    function handleLoginMobile() {
+        // Mock login
+        currentUser = {
+            name: 'Иван Иванов',
+            type: 'client'
+        };
+        
+        updateAuthUI();
+        closeAuthModal();
+        showNotification('Вы успешно вошли!');
+        showScreen('dashboard');
+    }
+
+    function handleRegisterMobile() {
+        const accountType = document.getElementById('accountTypeMobile').value;
+        
+        // Mock registration
+        currentUser = {
+            name: document.querySelector('#registerFormMobile input[type="text"]').value || 'Новый пользователь',
+            type: accountType
+        };
+        
+        updateAuthUI();
+        closeAuthModal();
+        showNotification('Регистрация успешна!');
+        showScreen('dashboard');
+        
+        // Показать пункты меню для исполнителей если нужно
+        if (accountType === 'performer') {
+            document.getElementById('performerRequestsItem').style.display = 'block';
+            document.getElementById('performerCalendarItem').style.display = 'block';
+            document.getElementById('performerProfileItem').style.display = 'block';
+            document.getElementById('performerProItem').style.display = 'block';
+        }
+    }
+
+    function updateAuthUI() {
+        if (currentUser) {
+            document.getElementById('mobileUserName').textContent = currentUser.name;
+        } else {
+            document.getElementById('mobileUserName').textContent = 'Гость';
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        updateAuthUI();
+        showScreen('home');
+        showNotification('Вы вышли из аккаунта');
+        
+        // Скрыть пункты меню для исполнителей
+        document.getElementById('performerRequestsItem').style.display = 'none';
+        document.getElementById('performerCalendarItem').style.display = 'none';
+        document.getElementById('performerProfileItem').style.display = 'none';
+        document.getElementById('performerProItem').style.display = 'none';
+    }
+
+    // =================== БРОНИРОВАНИЕ ===================
+    function openBookingModal() {
+        if (!selectedDate && currentScreen !== 'profile') {
+            showNotification('Выберите дату в календаре');
+            return;
+        }
+        
+        if (!selectedDate) {
+            // Если открыли из профиля, используем текущую дату
+            selectedDate = new Date();
+        }
+        
+        const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 
+                          'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        
+        const dateStr = `${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`;
+        document.getElementById('selectedDateMobile').value = dateStr;
+        document.getElementById('bookingModal').style.display = 'flex';
+    }
+
+    function closeBookingModal() {
+        document.getElementById('bookingModal').style.display = 'none';
+    }
+
+    function confirmBookingMobile() {
+        closeBookingModal();
+        showNotification('Бронирование подтверждено! Переход к оплате...');
+        setTimeout(() => {
+            showScreen('bookings');
+        }, 1000);
+    }
+
+    // =================== ЧАТ ===================
+    function openChatWithPerformer() {
+        if (!currentUser) {
+            showAuthModal('login');
+            return;
+        }
+        openChat(1);
+    }
+
+    function openChat(chatId) {
+        activeChat = chatId;
+        const chatNames = {
+            1: 'Анна Петрова',
+            2: 'Максим Волков',
+            3: 'DJ Artem'
+        };
+        
+        document.getElementById('chatWithName').textContent = chatNames[chatId];
+        renderChatMessages(chatId);
+        showScreen('chatDetail');
+    }
+
+    function renderChatMessages(chatId) {
+        const container = document.getElementById('chatMessagesContainer');
+        
+        // Mock messages
+        const messages = [
+            { text: 'Здравствуйте! Хочу забронировать вас на свадьбу 15 февраля', time: '09:45', sent: true },
+            { text: 'Добрый день! Спасибо за обращение. Эта дата у меня свободна', time: '09:50', sent: false },
+            { text: 'Отлично! Какой пакет вы посоветуете для свадьбы на 50 человек?', time: '09:52', sent: true },
+            { text: 'Для такого количества гостей рекомендую пакет "Стандарт" - 4 часа работы с полной обработкой', time: '09:55', sent: false },
+            { text: 'Звучит хорошо! Давайте бронируем', time: '10:00', sent: true },
+            { text: 'Добрый день! Подтверждаю бронирование. Договор и счет направлю в течение часа', time: '10:30', sent: false }
+        ];
+        
+        container.innerHTML = messages.map(msg => `
+            <div class="message-bubble ${msg.sent ? 'message-sent' : 'message-received'}">
+                <div>${msg.text}</div>
+                <div class="message-time" style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 4px; text-align: right;">${msg.time}</div>
+            </div>
+        `).join('');
+        
+        // Прокрутить вниз
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 100);
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        const container = document.getElementById('chatMessagesContainer');
+        const now = new Date();
+        const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        container.innerHTML += `
+            <div class="message-bubble message-sent">
+                <div>${message}</div>
+                <div class="message-time" style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 4px; text-align: right;">${time}</div>
+            </div>
+        `;
+        
+        input.value = '';
+        
+        // Автоответ через 1 секунду
+        setTimeout(() => {
+            const autoReplies = [
+                'Спасибо за сообщение!',
+                'Я свяжусь с вами в ближайшее время.',
+                'Отлично, я учту эту информацию.',
+                'Давайте обсудим детали.'
+            ];
+            const reply = autoReplies[Math.floor(Math.random() * autoReplies.length)];
+            
+            container.innerHTML += `
+                <div class="message-bubble message-received">
+                    <div>${reply}</div>
+                    <div class="message-time" style="font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: right;">${new Date().getHours().toString().padStart(2, '0')}:${(new Date().getMinutes() + 1).toString().padStart(2, '0')}</div>
+                </div>
+            `;
+            
+            // Прокрутить вниз
+            container.scrollTop = container.scrollHeight;
+        }, 1000);
+        
+        // Прокрутить вниз
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 100);
+    }
+
+    function callPerformer() {
+        showNotification('Имитация звонка исполнителю...');
+    }
+
+    // =================== ИЗБРАННОЕ ===================
+    function addToFavorites() {
+        if (!currentUser) {
+            showAuthModal('login');
+            return;
+        }
+        showNotification('Добавлено в избранное!');
+        
+        // Добавляем в избранное в интерфейсе
+        const favoritesGrid = document.getElementById('favoritesGridMobile');
+        if (selectedPerformer && !favoritesGrid.innerHTML.includes(selectedPerformer.name)) {
+            favoritesGrid.innerHTML += createPerformerCardMobile(selectedPerformer);
+        }
+    }
+
+    function addToFavoritesMobile(performerId) {
+        event.stopPropagation();
+        if (!currentUser) {
+            showAuthModal('login');
+            return;
+        }
+        
+        const performer = performers.find(p => p.id === performerId);
+        if (performer) {
+            showNotification(performer.name + ' добавлен в избранное!');
+        }
+    }
+
+    // =================== СОБЫТИЯ ===================
+    function openEventModal() {
+        document.getElementById('eventModal').style.display = 'flex';
+    }
+
+    function closeEventModal() {
+        document.getElementById('eventModal').style.display = 'none';
+    }
+
+    function handleEventCreateMobile() {
+        closeEventModal();
+        showNotification('Мероприятие создано!');
+        showScreen('events');
+    }
+
+    // =================== КАЛЬКУЛЯТОР ===================
+    function removeFromCalculator(button) {
+        button.closest('.calculator-item-mobile').remove();
+        updateCalculatorTotal();
+    }
+
+    function updateCalculatorTotal() {
+        const items = document.querySelectorAll('.calculator-item-price-mobile');
+        let total = 0;
+        items.forEach(item => {
+            const price = parseInt(item.textContent.replace(/\D/g, ''));
+            total += price;
+        });
+        document.getElementById('calculatorTotalMobile').textContent = total.toLocaleString() + ' ₸';
+    }
+
+    function clearCalculator() {
+        document.getElementById('calculatorItemsMobile').innerHTML = '';
+        document.getElementById('calculatorTotalMobile').textContent = '0 ₸';
+        showNotification('Калькулятор очищен');
+    }
+
+    // =================== ФИЛЬТРЫ ===================
+    function showFiltersModal() {
+        document.getElementById('filtersModal').style.display = 'flex';
+    }
+
+    function closeFiltersModal() {
+        document.getElementById('filtersModal').style.display = 'none';
+    }
+
+    function applyFilters() {
+        closeFiltersModal();
+        showNotification('Фильтры применены');
+        // Здесь можно добавить логику фильтрации
+    }
+
+    function resetFilters() {
+        document.querySelectorAll('#filtersModal input, #filtersModal select').forEach(el => {
+            if (el.type === 'checkbox') {
+                el.checked = false;
+            } else if (el.type === 'number') {
+                el.value = '';
+            } else if (el.tagName === 'SELECT') {
+                el.selectedIndex = 0;
+            }
+        });
+        showNotification('Фильтры сброшены');
+    }
+
+    // =================== ПРОФИЛЬ ИСПОЛНИТЕЛЯ ===================
+    function saveProfile() {
+        showNotification('Профиль сохранен!');
+        showScreen('dashboard');
+    }
+
+    // =================== УТИЛИТЫ ===================
+    function closeAllModals() {
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.style.display = 'none';
+        });
+    }
+
+    function showNotification(text, type = 'success') {
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+        
+        notificationText.textContent = text;
+        notification.className = `notification ${type}`;
+        notification.style.display = 'flex';
+        
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 300);
+        }, 3000);
+    }
+
+    // Обработка кликов вне модальных окон
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal-overlay')) {
+            event.target.style.display = 'none';
+        }
+    }
+
+    // Предотвращение контекстного меню
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+    });
+
+    // Обработка кнопки "Назад" на телефоне
+    window.onpopstate = function(event) {
+        if (currentScreen !== 'home') {
+            showScreen('home');
+        }
+    };
+</script>
+</body>
+</html>
