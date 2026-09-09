@@ -1,1162 +1,627 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Умный Бизнес-Центр — Презентация Проекта</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-    
-    .header-bg {
-      background: #1e3a8a;
-    }
-    
-    .card-hover {
-      transition: all 0.3s ease;
-    }
-    
-    .card-hover:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    .accent-color {
-      color: #1e40af;
-    }
-    
-    .accent-bg {
-      background: #1e40af;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#132430">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Программа">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAC2ElEQVR4nO3dwW1TMQCA4QQhMUBHoAP0wi4cuDEAjFIG4MaBXZiBQTjBIRKqUP8Xlzip1XzftY3l2n+cRC9J9ze3dzt4zKvnngDrEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBen2OQX/e/xr/5bef35xjDi/D867kfu6/K3/SH/OQRP6xwkrOfFj577/nxNu+PIus5LQ4Tp+TPg7WWck5ccyajT6WWkmvVkgT4ph7d7/mw2O1lXRykMRBEgdJHCRxkMRBEgdp9Krsuy8f8me/v86ZC7Nt7NqPT9+O3nzo5NgqY7d7v/84MggXtr0v23t6cDyOkVH0sZqRHTm6s0fiGCljfDZcxvhebO+vJ6QkcZDO8h7SE13zhdmlODlI4iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQOkjhI4iCJgyQO0oofarra70Ff7dNcTg6SOEhH4hj5/peD777fZxnje7G9v8dPjpE+lLGakR05urNDDyvboyhjTdv7MnKfH321sjXW/eAYXNr4s4JHeUJKEgdJHCRxkMRBEgdJHKQJccy9iHq1l2R3662kk4M0J45ZyV/zsXGw1EpOOzlOn40yDtZZyZkPK6fMSRkPLbKS+5vbu1lj/fWkt7vJYsPzruRZ4uBl8GqFJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIP0BXQJ4e/gF6FcAAAAASUVORK5CYII=">
+<title>Программа тренировок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#132430;
+    --surface:#1B3242;
+    --surface-2:#22404F;
+    --line:#2E5164;
+    --amber:#F0B429;
+    --amber-dim:#8A6816;
+    --done:#48B58C;
+    --text:#E8F0F4;
+    --muted:#8DA9B8;
+    --danger:#D96A5B;
+    --r:10px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Barlow Semi Condensed','Roboto Condensed',system-ui,-apple-system,sans-serif;
+    font-size:17px;
+    line-height:1.35;
+    font-variant-numeric:tabular-nums;
+    padding-bottom:190px;
+    overscroll-behavior-y:contain;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:0 14px;}
 
-    .variant-tab {
-      transition: all 0.3s ease;
-    }
-    
-    .variant-tab.active {
-      background: #1e40af;
-      color: white;
-    }
+  /* ---------- header ---------- */
+  header{
+    position:sticky;top:0;z-index:40;
+    background:rgba(19,36,48,.96);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    padding-top:env(safe-area-inset-top);
+  }
+  .htop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 8px;}
+  .htop h1{font-size:19px;font-weight:700;margin:0;letter-spacing:.2px;white-space:nowrap;}
+  .htop .sub{font-size:14px;color:var(--muted);}
+  .progbtn{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    font-family:inherit;font-size:14.5px;font-weight:600;padding:6px 13px;
+    border-radius:99px;cursor:pointer;
+  }
+  .progbtn.on{background:var(--amber);border-color:var(--amber);color:#12222C;}
+  .progbtn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
 
-    /* Added smooth transitions for variant switching */
-    .variant-content {
-      display: none;
-    }
-    
-    .variant-content.active {
-      display: block;
-      animation: fadeIn 0.3s ease-in;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-  </style>
+  .pgroup{margin-top:18px;}
+  .pgroup h3{font-size:17px;margin:0 0 8px;font-weight:600;color:var(--amber);}
+  .pex{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    padding:11px 12px;margin-bottom:8px;
+  }
+  .pname{font-size:16px;font-weight:600;line-height:1.2;}
+  .pline{display:flex;align-items:flex-end;gap:12px;margin-top:9px;}
+  .pnow{font-size:27px;font-weight:700;line-height:1;}
+  .pnow small{font-size:14px;font-weight:500;color:var(--muted);margin-left:3px;}
+  .pdelta{font-size:15px;font-weight:600;padding-bottom:2px;}
+  .up{color:var(--done);}
+  .down{color:var(--danger);}
+  .flat{color:var(--muted);}
+  .spark{margin-left:auto;flex-shrink:0;}
+  .phist{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.5;}
+  .pempty{color:var(--muted);font-size:14.5px;margin-top:7px;}
+  .days{display:flex;gap:6px;padding-bottom:10px;}
+  .day{
+    flex:1;border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:var(--r);padding:8px 4px;cursor:pointer;font-family:inherit;
+    font-size:15px;font-weight:600;line-height:1.15;text-align:center;transition:.12s;
+  }
+  .day small{display:block;font-size:12px;font-weight:400;opacity:.8;margin-top:2px;}
+  .day[aria-selected="true"]{background:var(--amber);border-color:var(--amber);color:#12222C;}
+  .day:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+
+  /* ---------- day meta ---------- */
+  .daymeta{display:flex;align-items:center;gap:10px;padding:14px 0 6px;}
+  .daymeta h2{font-size:19px;margin:0;font-weight:600;flex:1;}
+  .bar{height:5px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:14px;}
+  .bar i{display:block;height:100%;background:var(--done);width:0;transition:width .25s;}
+  .count{font-size:15px;color:var(--muted);white-space:nowrap;}
+
+  /* ---------- exercise ---------- */
+  .ex{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r);margin-bottom:10px;overflow:hidden;
+  }
+  .ex.complete{border-color:var(--done);}
+  .exhead{display:flex;gap:10px;padding:11px 12px;align-items:flex-start;}
+  .num{
+    font-size:15px;font-weight:700;color:var(--muted);
+    min-width:19px;padding-top:1px;
+  }
+  .ex.complete .num{color:var(--done);}
+  .exinfo{flex:1;min-width:0;}
+  .exname{font-size:17px;font-weight:600;line-height:1.2;}
+  .extags{font-size:13.5px;color:var(--muted);margin-top:3px;}
+  .extags b{color:var(--amber);font-weight:600;}
+
+  .sets{padding:0 12px 11px;}
+  .srow{
+    display:grid;grid-template-columns:22px 1fr 1fr 46px;
+    gap:7px;align-items:center;margin-top:7px;
+  }
+  .slabel{font-size:14px;color:var(--muted);text-align:center;}
+  .fld{position:relative;}
+  .fld input{
+    width:100%;background:var(--surface-2);border:1px solid transparent;
+    color:var(--text);font-family:inherit;font-size:17px;font-weight:600;
+    border-radius:8px;padding:9px 30px 9px 9px;
+    -moz-appearance:textfield;
+  }
+  .fld input::-webkit-outer-spin-button,.fld input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .fld input:focus{outline:none;border-color:var(--amber);}
+  .fld span{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    font-size:12.5px;color:var(--muted);pointer-events:none;
+  }
+  .chk{
+    height:38px;border-radius:8px;border:1px solid var(--line);
+    background:transparent;cursor:pointer;color:var(--muted);
+    display:flex;align-items:center;justify-content:center;transition:.12s;
+  }
+  .chk svg{width:19px;height:19px;}
+  .chk[aria-pressed="true"]{background:var(--done);border-color:var(--done);color:#0F2620;}
+  .chk:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+  .srow.on .fld input{background:rgba(72,181,140,.13);color:var(--done);}
+  .srow.on .slabel{color:var(--done);}
+
+  /* ---------- timer dock ---------- */
+  .dock{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:var(--surface);border-top:1px solid var(--line);
+    padding:10px 14px calc(12px + env(safe-area-inset-bottom));
+    transform:translateY(105%);transition:transform .22s ease;
+  }
+  .dock.up{transform:translateY(0);}
+  .dockin{max-width:560px;margin:0 auto;}
+  .dtop{display:flex;align-items:center;gap:12px;}
+  .clock{
+    font-size:52px;font-weight:700;line-height:.9;letter-spacing:-1px;
+    color:var(--amber);min-width:118px;
+  }
+  .clock.zero{color:var(--done);}
+  .dnext{flex:1;min-width:0;}
+  .dnext .lbl{font-size:13px;color:var(--muted);}
+  .dnext .val{font-size:16px;font-weight:600;line-height:1.2;margin-top:2px;}
+  .dbtns{display:flex;gap:7px;margin-top:10px;}
+  .dbtns button{
+    flex:1;padding:11px 6px;border-radius:8px;border:1px solid var(--line);
+    background:var(--surface-2);color:var(--text);font-family:inherit;
+    font-size:15.5px;font-weight:600;cursor:pointer;
+  }
+  .dbtns button.main{background:var(--amber);border-color:var(--amber);color:#12222C;}
+  .dbtns button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+  .tbar{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:9px;}
+  .tbar i{display:block;height:100%;background:var(--amber);width:100%;}
+
+  /* ---------- rest ---------- */
+  .restday{
+    text-align:center;padding:46px 20px;color:var(--muted);
+    border:1px dashed var(--line);border-radius:var(--r);
+  }
+  .restday b{display:block;color:var(--text);font-size:19px;margin-bottom:6px;}
+  .foot{padding:20px 0 8px;}
+  .foot button{
+    width:100%;padding:12px;border-radius:var(--r);border:1px solid var(--line);
+    background:transparent;color:var(--muted);font-family:inherit;font-size:15.5px;cursor:pointer;
+  }
+  .rules{margin-top:16px;border-top:1px solid var(--line);padding-top:14px;}
+  .rules summary{cursor:pointer;font-size:16px;font-weight:600;color:var(--muted);padding:6px 0;}
+  .rules ol{margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:15.5px;}
+  .rules li{margin-bottom:7px;}
+  .rules b{color:var(--text);font-weight:600;}
+  .vol{width:100%;border-collapse:collapse;margin-top:10px;font-size:15px;}
+  .vol td{padding:5px 0;border-bottom:1px solid var(--line);color:var(--muted);}
+  .vol td:last-child{text-align:right;color:var(--text);font-weight:600;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
 </head>
-<body class="bg-gray-50">
-  
-  <div class="header-bg text-white py-16">
-    <div class="max-w-6xl mx-auto px-6">
-      <h1 class="text-5xl font-bold mb-4">Расчёт инфраструктуры ИИ для БЦ</h1>
-      <p class="text-xl mb-8 opacity-90">Современная система управления зданием с искусственным интеллектом</p>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-          <div class="text-4xl font-bold mb-2">12 800 м²</div>
-          <div class="text-base opacity-90">Площадь бизнес-центра</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-          <div class="text-4xl font-bold mb-2">7 этажей</div>
-          <div class="text-base opacity-90">Высота здания</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-          <div class="text-4xl font-bold mb-2">~90 камер</div>
-          <div class="text-base opacity-90">Система видеонаблюдения</div>
-        </div>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="htop">
+      <h1>Программа</h1>
+      <button id="tab-prog" class="progbtn">Прогресс</button>
+    </div>
+    <div class="days" id="days" role="tablist"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<div class="dock" id="dock">
+  <div class="dockin">
+    <div class="dtop">
+      <div class="clock" id="clock">0:00</div>
+      <div class="dnext">
+        <div class="lbl" id="tlbl">Отдых</div>
+        <div class="val" id="tval"></div>
       </div>
+    </div>
+    <div class="tbar"><i id="tfill"></i></div>
+    <div class="dbtns">
+      <button id="add30">+30 сек</button>
+      <button id="skip" class="main">Пропустить</button>
     </div>
   </div>
+</div>
 
-  <div class="max-w-6xl mx-auto px-6 py-16">
-    <h2 class="text-4xl font-bold text-gray-900 mb-12">Возможности Умного Здания</h2>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      
-      <div class="bg-white rounded-lg p-6 shadow-md border border-gray-200 card-hover">
-        <div class="text-3xl mb-4 accent-color">
-          <i class="fas fa-shield-alt"></i>
-        </div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900">Безопасность</h3>
-        <ul class="text-gray-600 space-y-2 text-sm leading-relaxed">
-          <li>• Контроль парковки и въездов</li>
-          <li>• Обнаружение дыма и огня</li>
-          <li>• Защита от проникновений</li>
-          <li>• Автовызов охраны</li>
-          <li>• Патрулирование территории</li>
-        </ul>
-      </div>
+<script>
+const PROGRAM = {
+  mon:{name:"Верх A", note:"Жимовой акцент", ex:[
+    {n:"Жим гантелей лёжа", t:"Грудь, средний участок", s:4, r:"6-8", rest:150, w:1, hint:"Штанга через 6-8 недель"},
+    {n:"Вертикальная тяга широким хватом", t:"Широчайшие, ширина", s:4, r:"8-10", rest:120, w:1},
+    {n:"Жим гантелей на наклонной 30-45°", t:"Грудь, ключичная головка", s:3, r:"8-12", rest:105, w:1},
+    {n:"Горизонтальная тяга в тренажёре", t:"Широчайшие, ромбовидные", s:3, r:"8-12", rest:90, w:1, side:1},
+    {n:"Махи гантелями в стороны", t:"Средняя дельта", s:3, r:"12-15", rest:60, w:1},
+    {n:"Разгибания на трицепс, блок", t:"Трицепс, латеральная + медиальная", s:3, r:"10-12", rest:75, w:1},
+    {n:"Молот", t:"Брахиалис, брахиорадиалис", s:3, r:"10-12", rest:75, w:1},
+    {n:"Планка", t:"Кор, антиразгибание", s:3, r:"40", rest:45, w:0, sec:1}
+  ]},
+  wed:{name:"Низ A", note:"Квадрицепс-доминант", ex:[
+    {n:"Гакк-присед", t:"Квадрицепс, ягодичные", s:4, r:"8-10", rest:150, w:1},
+    {n:"Жим ногами", t:"Квадрицепс", s:3, r:"10-12", rest:120, w:1},
+    {n:"Болгарский сплит-присед с весом", t:"Ягодичные, квадрицепс", s:3, r:"8-10", rest:120, w:1, side:1},
+    {n:"Разгибания ног сидя", t:"Прямая мышца бедра", s:3, r:"12-15", rest:75, w:1},
+    {n:"Подъёмы на носки стоя", t:"Икроножная", s:4, r:"12-15", rest:60, w:1},
+    {n:"Скручивания на блоке", t:"Прямая мышца живота", s:3, r:"12-15", rest:60, w:1}
+  ]},
+  fri:{name:"Верх B", note:"Тяговый акцент", ex:[
+    {n:"Тяга штанги в наклоне к поясу", t:"Толщина спины, средняя трапеция", s:4, r:"8-10", rest:150, w:1},
+    {n:"Жим на плечи в тренажёре", t:"Передняя + средняя дельта", s:4, r:"6-8", rest:150, w:1},
+    {n:"Подтягивания / тяга обратным хватом", t:"Низ широчайших, бицепс", s:3, r:"8-10", rest:120, w:1},
+    {n:"Брусья с наклоном вперёд", t:"Грудь, нижний участок", s:3, r:"8-12", rest:105, w:1, hint:"Первые 4-6 недель без веса"},
+    {n:"Бабочка", t:"Грудь, полное приведение", s:3, r:"10-12", rest:75, w:1, hint:"Пауза 1 сек в точке сведения"},
+    {n:"Обратная бабочка", t:"Задняя дельта", s:3, r:"12-15", rest:60, w:1},
+    {n:"Подъём гантелей сидя с супинацией, в наклоне", t:"Бицепс, длинная головка", s:3, r:"8-12", rest:75, w:1},
+    {n:"Разгибание гантели над головой", t:"Трицепс, длинная головка", s:3, r:"10-12", rest:75, w:1},
+    {n:"Шраги", t:"Верхняя трапеция", s:2, r:"12-15", rest:60, w:1}
+  ]},
+  sun:{name:"Низ B", note:"Задняя цепь", ex:[
+    {n:"Гиперэкстензия с весом", t:"Разгибатели, бицепс бедра, ягодичные", s:4, r:"10-12", rest:120, w:1, hint:"Румынская тяга через 4-6 недель"},
+    {n:"Сгибания ног лёжа", t:"Бицепс бедра, сгибание колена", s:4, r:"10-12", rest:90, w:1},
+    {n:"Выпады с гантелями", t:"Ягодичные, квадрицепс", s:3, r:"10", rest:105, w:1, side:1},
+    {n:"Подъёмы на носки сидя", t:"Камбаловидная", s:4, r:"15-20", rest:60, w:1},
+    {n:"Боковая планка", t:"Косые, латеральная стабилизация", s:3, r:"30", rest:45, w:0, sec:1, side:1}
+  ]}
+};
+const DAYS=[
+  {id:"mon",lbl:"Пн",sub:"Верх A"},{id:"tue",lbl:"Вт",sub:"Отдых"},
+  {id:"wed",lbl:"Ср",sub:"Низ A"},{id:"thu",lbl:"Чт",sub:"Отдых"},
+  {id:"fri",lbl:"Пт",sub:"Верх B"},{id:"sat",lbl:"Сб",sub:"Отдых"},
+  {id:"sun",lbl:"Вс",sub:"Низ B"}
+];
+const VOLUME=[["Спина",14],["Грудь",13],["Квадрицепс",13],["Ягодичные",10],["Кор",9],["Задняя поверхность",8],["Икры",8],["Дельта средняя",6],["Бицепс",6],["Трицепс",6],["Дельта передняя",4],["Дельта задняя",3],["Трапеция",2]];
 
-      <div class="bg-white rounded-lg p-6 shadow-md border border-gray-200 card-hover">
-        <div class="text-3xl mb-4 accent-color">
-          <i class="fas fa-building"></i>
-        </div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900">Автоматизация</h3>
-        <ul class="text-gray-600 space-y-2 text-sm leading-relaxed">
-          <li>• Умное освещение</li>
-          <li>• Контроль температуры</li>
-          <li>• Автоматические шторы</li>
-          <li>• Умный домофон</li>
-          <li>• Экономия энергии</li>
-        </ul>
-      </div>
+const KEY="gym-log-v1";
+let state={log:{},last:{}};
+let cur=DAYS[[6,0,1,2,3,4,5][new Date().getDay()]].id;
+if(!PROGRAM[cur]) cur="mon";
 
-      <div class="bg-white rounded-lg p-6 shadow-md border border-gray-200 card-hover">
-        <div class="text-3xl mb-4 accent-color">
-          <i class="fas fa-robot"></i>
-        </div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900">AI Помощники</h3>
-        <ul class="text-gray-600 space-y-2 text-sm leading-relaxed">
-          <li>• Терминал в лобби</li>
-          <li>• Помощь с документами</li>
-          <li>• Анализ встреч</li>
-          <li>• Дизайн-консультант</li>
-          <li>• Юридический помощник</li>
-        </ul>
-      </div>
+/* ---------- storage ---------- */
+let storageOK=true;
+function load(){
+  try{
+    const r=localStorage.getItem(KEY);
+    if(r)state=JSON.parse(r);
+  }catch(e){storageOK=false;}
+  if(!state.log)state.log={};
+  if(!state.last)state.last={};
+  if(!state.done)state.done={};
+}
+let saveT=null;
+function save(){
+  clearTimeout(saveT);
+  saveT=setTimeout(()=>{
+    try{localStorage.setItem(KEY,JSON.stringify(state));}
+    catch(e){storageOK=false;}
+  },300);
+}
+function slot(day,i,j){
+  const k=day+"|"+i;
+  if(!state.log[k])state.log[k]=[];
+  if(!state.log[k][j])state.log[k][j]={w:"",r:"",d:false};
+  return state.log[k][j];
+}
 
-      <div class="bg-white rounded-lg p-6 shadow-md border border-gray-200 card-hover">
-        <div class="text-3xl mb-4 accent-color">
-          <i class="fas fa-mobile-alt"></i>
-        </div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900">Мобильное Приложение</h3>
-        <ul class="text-gray-600 space-y-2 text-sm leading-relaxed">
-          <li>• Бронирование парковки</li>
-          <li>• Резерв переговорных</li>
-          <li>• Вызов уборщика</li>
-          <li>• Хранилище документов</li>
-          <li>• Управление доступом</li>
-        </ul>
-      </div>
-      
-    </div>
-  </div>
+/* ---------- history ---------- */
+function todayKey(){
+  const d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function recordHistory(day,i){
+  const e=PROGRAM[day].ex[i], k=day+"|"+i, sets=state.log[k]||[];
+  let best=null, vol=0, n=0;
+  for(let j=0;j<e.s;j++){
+    const s=sets[j];
+    if(!s||!s.d)continue;
+    n++;
+    const w=parseFloat(s.w)||0, r=parseFloat(s.r)||0;
+    vol+=w*r;
+    if(!best||w>best.w||(w===best.w&&r>best.r))best={w:w,r:r};
+  }
+  if(!state.hist)state.hist={};
+  if(!state.hist[k])state.hist[k]=[];
+  const arr=state.hist[k], t=todayKey();
+  const rec={d:t,w:best?best.w:0,r:best?best.r:0,v:Math.round(vol),n:n};
+  const last=arr[arr.length-1];
+  if(n===0){ if(last&&last.d===t)arr.pop(); return; }
+  if(last&&last.d===t)arr[arr.length-1]=rec; else arr.push(rec);
+  if(arr.length>40)arr.shift();
+}
 
-  <!-- Improved variant selector with clearer design -->
-  <div class="bg-gray-100 py-8 border-t border-gray-200">
-    <div class="max-w-6xl mx-auto px-6">
-      <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Выберите вариант внедрения</h2>
-      <div class="flex flex-col md:flex-row gap-4 justify-center">
-        <button onclick="showVariant(1)" id="variant1-btn" class="variant-tab active px-8 py-4 rounded-lg border-2 border-blue-800 bg-blue-800 text-white font-semibold text-lg">
-          <i class="fas fa-server mr-2"></i>
-          Вариант 1 — Свои серверы для обучения
-        </button>
-        <button onclick="showVariant(2)" id="variant2-btn" class="variant-tab px-8 py-4 rounded-lg border-2 border-blue-800 text-blue-800 font-semibold text-lg bg-white">
-          <i class="fas fa-cloud mr-2"></i>
-          Вариант 2 — Обучение в облаке
-        </button>
-      </div>
-    </div>
-  </div>
+/* ---------- timer ---------- */
+let endAt=0,total=0,tick=null,nextTxt="";
+const dock=document.getElementById("dock"),clock=document.getElementById("clock"),
+      tfill=document.getElementById("tfill"),tval=document.getElementById("tval"),
+      tlbl=document.getElementById("tlbl");
 
-  <!-- Variant 1 - Complete and independent content -->
-  <div id="variant1" class="variant-content active">
-    <div class="bg-white py-16 border-t border-gray-200">
-      <div class="max-w-6xl mx-auto px-6">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Вариант 1 — со своими серверами для обучения</h2>
-        <p class="text-gray-600 mb-12 text-lg">Пошаговый план запуска умного здания</p>
+function startTimer(sec,label){
+  total=sec;endAt=Date.now()+sec*1000;nextTxt=label;
+  tval.textContent=label;tlbl.textContent="Отдых";
+  clock.classList.remove("zero");
+  dock.classList.add("up");
+  clearInterval(tick);tick=setInterval(paintTimer,200);paintTimer();
+}
+function paintTimer(){
+  const left=Math.max(0,endAt-Date.now())/1000;
+  const m=Math.floor(left/60),s=Math.floor(left%60);
+  clock.textContent=m+":"+String(s).padStart(2,"0");
+  tfill.style.width=(total?Math.max(0,left/total*100):0)+"%";
+  if(left<=0){
+    clearInterval(tick);tick=null;
+    clock.classList.add("zero");tlbl.textContent="Готово - следующий подход";
+    if(navigator.vibrate)navigator.vibrate([120,70,120]);
+    beep();
+  }
+}
+function beep(){
+  try{
+    const a=new(window.AudioContext||window.webkitAudioContext)();
+    const o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.frequency.value=760;o.type="sine";
+    g.gain.setValueAtTime(.001,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.25,a.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5);
+    o.start();o.stop(a.currentTime+.5);
+  }catch(e){}
+}
+document.getElementById("skip").onclick=()=>{clearInterval(tick);tick=null;dock.classList.remove("up");};
+document.getElementById("add30").onclick=()=>{
+  if(!tick){endAt=Date.now();clock.classList.remove("zero");tlbl.textContent="Отдых";
+    tick=setInterval(paintTimer,200);}
+  endAt+=30000;total+=30;paintTimer();
+};
 
-        <!-- Этап 1 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-800">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">1</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Подготовка и Разработка Основы</h3>
-              <p class="text-gray-600 mb-4">Создание базовой системы и приложения</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">1–2 месяца</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Операционные Расходы</div>
-                  <div class="text-xl font-bold accent-color">$1 600 – 2 000</div>
-                  <div class="text-sm text-gray-500">в месяц</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Режим работы</div>
-                  <div class="text-xl font-bold text-gray-900">Удалённо</div>
-                </div>
-              </div>
+/* ---------- render ---------- */
+const main=document.getElementById("main");
 
-              <div class="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-                <div class="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">Используемые ресурсы:</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700">
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-microchip text-blue-600 mt-1"></i>
-                    <span>GPU: 1–2 по требованию (обучение)</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-server text-blue-600 mt-1"></i>
-                    <span>CPU: 2–3 сервера (backend, staging)</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-database text-blue-600 mt-1"></i>
-                    <span>Хранилище: ~5 ТБ + 1 ТБ SSD</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-cloud text-blue-600 mt-1"></i>
-                    <span>Облачная инфраструктура</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <strong class="accent-color">Результат:</strong> Готовая программная платформа, мобильное приложение, базовые AI-помощники
-              </div>
-            </div>
-          </div>
-        </div>
+function renderDays(){
+  const c=document.getElementById("days");c.innerHTML="";
+  DAYS.forEach(d=>{
+    const b=document.createElement("button");
+    b.className="day";b.setAttribute("role","tab");
+    b.setAttribute("aria-selected",d.id===cur);
+    b.innerHTML=d.lbl+"<small>"+d.sub+"</small>";
+    b.onclick=()=>{cur=d.id;renderDays();renderDay();window.scrollTo({top:0});};
+    c.appendChild(b);
+  });
+}
 
-        <!-- Этап 2 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-700">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">2</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Подготовка к Промышленному Запуску</h3>
-              <p class="text-gray-600 mb-4">Усиление и стабилизация системы</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">3–6 месяцев</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Операционные Расходы</div>
-                  <div class="text-xl font-bold accent-color">$3 500 – 4 800</div>
-                  <div class="text-sm text-gray-500">в месяц</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Режим работы</div>
-                  <div class="text-xl font-bold text-gray-900">Удалённо</div>
-                </div>
-              </div>
+function renderDay(){
+  main.innerHTML="";
+  const p=PROGRAM[cur];
+  if(!p){
+    main.innerHTML='<div style="height:18px"></div><div class="restday"><b>День отдыха</b>Восстановление - это часть программы, а не пауза в ней.</div>'+rulesHTML();
+    return;
+  }
+  const meta=document.createElement("div");
+  meta.className="daymeta";
+  meta.innerHTML='<h2>'+p.name+' <span style="color:var(--muted);font-weight:400">· '+p.note+'</span></h2><span class="count" id="cnt"></span>';
+  main.appendChild(meta);
+  const bar=document.createElement("div");bar.className="bar";bar.innerHTML='<i id="fill"></i>';
+  main.appendChild(bar);
 
-              <div class="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-                <div class="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">Используемые ресурсы:</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700">
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-microchip text-blue-600 mt-1"></i>
-                    <span>GPU: 2–3 частично постоянные</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-server text-blue-600 mt-1"></i>
-                    <span>CPU: усиленный backend</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-database text-blue-600 mt-1"></i>
-                    <span>Хранилище: 10–15 ТБ + 2 ТБ SSD</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-code-branch text-blue-600 mt-1"></i>
-                    <span>MLOps: registry, автодеплой</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <strong class="accent-color">Результат:</strong> Надёжная система, готовая к установке в здании
-              </div>
-            </div>
-          </div>
-        </div>
+  p.ex.forEach((e,i)=>main.appendChild(exCard(e,i)));
 
-        <!-- Этап 3 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-600">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">3</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Пилотный Запуск в Здании</h3>
-              <p class="text-gray-600 mb-4">Установка оборудования и тестирование на части здания</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">3–4 месяца</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Оборудование</div>
-                  <div class="text-xl font-bold accent-color">$110 – 170 тыс</div>
-                  <div class="text-sm text-gray-500">единоразово</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Камеры</div>
-                  <div class="text-xl font-bold text-gray-900">30–40 шт</div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                <div class="text-xs text-gray-500 mb-2 uppercase tracking-wide">Что устанавливается:</div>
-                <div class="grid grid-cols-2 gap-2 text-sm text-gray-700">
-                  <div><i class="fas fa-check text-green-600"></i> GPU-серверы: 4 шт</div>
-                  <div><i class="fas fa-check text-green-600"></i> CPU-серверы: 3 шт</div>
-                  <div><i class="fas fa-check text-green-600"></i> Хранилище: 30–50 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> SSD: 2–4 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> UPS (бесперебойное питание)</div>
-                  <div><i class="fas fa-check text-green-600"></i> Охлаждение серверной</div>
-                  <div><i class="fas fa-check text-green-600"></i> Сеть 10–25 Гбит/с</div>
-                  <div><i class="fas fa-check text-green-600"></i> 1 стойка, кондиционеры</div>
-                </div>
-              </div>
+  const foot=document.createElement("div");
+  foot.className="foot";
+  const btn=document.createElement("button");
+  btn.textContent="Сбросить день (веса останутся)";
+  btn.onclick=()=>{
+    if(!confirm("Сбросить отметки и повторы за этот день?"))return;
+    p.ex.forEach((e,i)=>{delete state.log[cur+"|"+i];});
+    save();renderDay();
+  };
+  foot.appendChild(btn);
 
-              <div class="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-                <div class="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">AI-анализ в реальном времени:</div>
-                <div class="text-gray-700">15–25 видеопотоков обрабатываются искусственным интеллектом для обнаружения инцидентов</div>
-              </div>
-              
-              <div class="text-gray-700 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <strong class="accent-color">Результат:</strong> Работающая система на части здания, проверка всех функций
-              </div>
-            </div>
-          </div>
-        </div>
+  const row=document.createElement("div");
+  row.style.cssText="display:flex;gap:8px;margin-top:8px;";
+  const exp=document.createElement("button");
+  exp.textContent="Копия данных";
+  exp.onclick=()=>{
+    const txt=JSON.stringify(state);
+    navigator.clipboard?.writeText(txt).then(
+      ()=>alert("Данные скопированы в буфер. Сохрани в заметках - это резервная копия."),
+      ()=>prompt("Скопируй вручную:",txt)
+    );
+  };
+  const imp=document.createElement("button");
+  imp.textContent="Восстановить";
+  imp.onclick=()=>{
+    const t=prompt("Вставь резервную копию:");
+    if(!t)return;
+    try{const o=JSON.parse(t);state=o;if(!state.log)state.log={};if(!state.last)state.last={};save();renderDay();}
+    catch(e){alert("Не получилось прочитать. Проверь, что скопирован весь текст.");}
+  };
+  row.appendChild(exp);row.appendChild(imp);
+  foot.appendChild(row);
 
-        <!-- Этап 4 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-500">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">4</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Полный Запуск Всего Здания</h3>
-              <p class="text-gray-600 mb-4">Подключение всех этажей и систем, работа 24/7</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">4–6 месяцев</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Доп. оборудование</div>
-                  <div class="text-xl font-bold accent-color">$80 – 150 тыс</div>
-                  <div class="text-sm text-gray-500">единоразово</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Эксплуатация</div>
-                  <div class="text-xl font-bold accent-color">$4 000 – 6 000</div>
-                  <div class="text-sm text-gray-500">в месяц</div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                <div class="text-xs text-gray-500 mb-2 uppercase tracking-wide">Полное покрытие здания:</div>
-                <div class="grid grid-cols-2 gap-2 text-sm text-gray-700">
-                  <div><i class="fas fa-check text-green-600"></i> Все 90 камер подключены</div>
-                  <div><i class="fas fa-check text-green-600"></i> 45 потоков AI-анализа</div>
-                  <div><i class="fas fa-check text-green-600"></i> GPU-серверы: 6 шт</div>
-                  <div><i class="fas fa-check text-green-600"></i> CPU-серверы: 5 шт</div>
-                  <div><i class="fas fa-check text-green-600"></i> Хранилище: 60–100 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> SSD: 4–6 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> Биометрия и QR-доступ</div>
-                  <div><i class="fas fa-check text-green-600"></i> Поддержка 24/7</div>
-                </div>
-              </div>
+  if(!storageOK){
+    const w=document.createElement("div");
+    w.style.cssText="margin-top:10px;padding:10px;border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:14.5px;";
+    w.textContent="Браузер не сохраняет данные. Скорее всего включён приватный режим - открой страницу в обычной вкладке.";
+    foot.appendChild(w);
+  }
+  main.appendChild(foot);
+  main.insertAdjacentHTML("beforeend",rulesHTML());
+  updateProgress();
+}
 
-              <div class="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-                <div class="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">Инфраструктура:</div>
-                <div class="grid grid-cols-2 gap-2 text-sm text-gray-700">
-                  <div><i class="fas fa-check text-blue-600"></i> 2 стойки оборудования</div>
-                  <div><i class="fas fa-check text-blue-600"></i> Сеть 25–40 Гбит/с</div>
-                  <div><i class="fas fa-check text-blue-600"></i> Резервное питание UPS</div>
-                  <div><i class="fas fa-check text-blue-600"></i> Пожарная защита</div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <strong class="accent-color">Результат:</strong> Полностью работающий умный бизнес-центр на всех 7 этажах и 12 800 м²
-              </div>
-            </div>
-          </div>
-        </div>
+function exCard(e,i){
+  const card=document.createElement("div");card.className="ex";card.dataset.i=i;
+  const perSide=e.side?" на сторону":"";
+  const unit=e.sec?" сек":"";
+  card.innerHTML=
+    '<div class="exhead"><div class="num">'+(i+1)+'</div><div class="exinfo">'+
+    '<div class="exname">'+e.n+'</div>'+
+    '<div class="extags"><b>'+e.s+'×'+e.r+unit+perSide+'</b> · '+e.t+' · отдых '+fmt(e.rest)+
+    (e.hint?' <br>'+e.hint:'')+'</div></div></div>';
+  const sets=document.createElement("div");sets.className="sets";
+  for(let j=0;j<e.s;j++)sets.appendChild(setRow(e,i,j));
+  card.appendChild(sets);
+  return card;
+}
 
-        <!-- Этап 5 -->
-        <div class="bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-400">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">5</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Долгосрочная Поддержка и Развитие</h3>
-              <p class="text-gray-600 mb-4">Обслуживание, обновления и новые функции</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">Постоянно</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Операционные Расходы</div>
-                  <div class="text-xl font-bold accent-color">$4 000 – 6 000</div>
-                  <div class="text-sm text-gray-500">в месяц</div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <strong class="accent-color">Результат:</strong> Стабильная работа и постоянное совершенствование системы
-              </div>
-            </div>
-          </div>
-        </div>
+function setRow(e,i,j){
+  const d=slot(cur,i,j);
+  const row=document.createElement("div");row.className="srow"+(d.d?" on":"");
+  const lastW=state.last[cur+"|"+i];
 
-      </div>
-    </div>
+  const lab=document.createElement("div");lab.className="slabel";lab.textContent=j+1;
+  row.appendChild(lab);
 
-    <!-- Server room section moved inside variant 1 -->
-    <div class="bg-gray-50 py-16 border-t border-gray-200">
-      <div class="max-w-6xl mx-auto px-6">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Серверная Комната</h2>
-        <p class="text-gray-600 mb-12 text-lg">Требования к помещению для размещения оборудования</p>
+  const wf=document.createElement("div");wf.className="fld";
+  if(e.w){
+    wf.innerHTML='<input type="number" inputmode="decimal" step="0.5" placeholder="'+(lastW||"–")+'"><span>кг</span>';
+    const wi=wf.querySelector("input");wi.value=d.w;
+    wi.oninput=()=>{d.w=wi.value;state.last[cur+"|"+i]=wi.value;if(d.d)recordHistory(cur,i);save();};
+  }else{
+    wf.innerHTML='<input type="text" value="Своё" disabled style="opacity:.45">';
+  }
+  row.appendChild(wf);
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          <div class="bg-white rounded-lg p-8 shadow-md border border-gray-200">
-            <h3 class="text-2xl font-bold text-gray-900 mb-6">Размеры помещения</h3>
-            
-            <div class="space-y-4">
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <i class="fas fa-expand-arrows-alt text-blue-700 text-xl"></i>
-                </div>
-                <div>
-                  <div class="font-bold text-lg text-gray-900 mb-1">Площадь: 18–25 м²</div>
-                  <div class="text-gray-600 text-sm">Минимальное пространство для размещения оборудования</div>
-                </div>
-              </div>
+  const rf=document.createElement("div");rf.className="fld";
+  rf.innerHTML='<input type="number" inputmode="numeric" placeholder="'+e.r+'"><span>'+(e.sec?"сек":"пвт")+'</span>';
+  const ri=rf.querySelector("input");ri.value=d.r;
+  ri.oninput=()=>{d.r=ri.value;if(d.d)recordHistory(cur,i);save();};
+  row.appendChild(rf);
 
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <i class="fas fa-ruler-vertical text-blue-700 text-xl"></i>
-                </div>
-                <div>
-                  <div class="font-bold text-lg text-gray-900 mb-1">Высота потолков: 3+ метра</div>
-                  <div class="text-gray-600 text-sm">Для циркуляции воздуха и размещения стоек</div>
-                </div>
-              </div>
+  const b=document.createElement("button");b.className="chk";
+  b.setAttribute("aria-pressed",d.d);b.setAttribute("aria-label","Подход "+(j+1)+" выполнен");
+  b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  b.onclick=()=>{
+    d.d=!d.d;
+    if(d.d&&!d.r)d.r=e.r.split("-")[0];
+    if(d.d&&e.w&&!d.w&&lastW){d.w=lastW;}
+    recordHistory(cur,i);
+    save();
+    const isLast=(j===e.s-1);
+    renderDay();
+    if(d.d)startTimer(e.rest,isLast?nextExercise(i):e.n+" · подход "+(j+2)+" из "+e.s);
+  };
+  row.appendChild(b);
+  return row;
+}
 
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <i class="fas fa-door-open text-blue-700 text-xl"></i>
-                </div>
-                <div>
-                  <div class="font-bold text-lg text-gray-900 mb-1">Дверь: ширина 90+ см</div>
-                  <div class="text-gray-600 text-sm">Для заноса серверных стоек</div>
-                </div>
-              </div>
-            </div>
+function nextExercise(i){
+  const p=PROGRAM[cur];
+  return p.ex[i+1]?("Дальше: "+p.ex[i+1].n):"Тренировка завершена";
+}
+function fmt(s){return s>=60?(Math.floor(s/60)+(s%60?":"+String(s%60).padStart(2,"0"):" мин")):(s+" сек");}
 
-            <div class="mt-8 pt-6 border-t border-gray-200">
-              <h4 class="text-lg font-bold text-gray-900 mb-4">Требования к помещению</h4>
-              <ul class="space-y-2 text-gray-700">
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Отдельное помещение с контролем доступа</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Система пожаротушения</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Кондиционирование 24/7</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Резервное электропитание</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Выделенная электролиния 20+ кВт</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+function updateProgress(){
+  const p=PROGRAM[cur];if(!p)return;
+  let tot=0,done=0;
+  p.ex.forEach((e,i)=>{
+    let dn=0;
+    for(let j=0;j<e.s;j++){tot++;if(slot(cur,i,j).d){done++;dn++;}}
+    const card=main.querySelector('.ex[data-i="'+i+'"]');
+    if(card&&dn===e.s)card.classList.add("complete");
+  });
+  const f=document.getElementById("fill"),c=document.getElementById("cnt");
+  if(f)f.style.width=(tot?done/tot*100:0)+"%";
+  if(c)c.textContent=done+" / "+tot+" подходов";
+}
 
-          <div class="bg-white rounded-lg p-8 shadow-md border border-gray-200">
-            <h3 class="text-2xl font-bold text-gray-900 mb-6">Размещение оборудования</h3>
-            
-            <div class="bg-gray-100 rounded-lg p-6 mb-6 border-2 border-dashed border-gray-300">
-              <div class="text-center text-gray-500 mb-4 font-semibold">План серверной комнаты</div>
-              
-              <div class="space-y-4">
-                <div class="bg-blue-900 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">Стойка 1</div>
-                      <div class="text-xs opacity-80">GPU серверы × 6</div>
-                    </div>
-                    <i class="fas fa-server text-2xl"></i>
-                  </div>
-                </div>
+/* ---------- progress screen ---------- */
+function spark(arr){
+  if(arr.length<2)return "";
+  const W=86,H=30,P=3;
+  const vals=arr.map(a=>a.w);
+  const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;
+  const pts=vals.map((v,i)=>{
+    const x=P+i*((W-P*2)/(vals.length-1));
+    const y=H-P-((v-mn)/rng)*(H-P*2);
+    return x.toFixed(1)+","+y.toFixed(1);
+  });
+  const lastUp=vals[vals.length-1]>=vals[0];
+  const col=lastUp?"#48B58C":"#D96A5B";
+  const [lx,ly]=pts[pts.length-1].split(",");
+  return '<svg class="spark" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+
+    '<polyline points="'+pts.join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<circle cx="'+lx+'" cy="'+ly+'" r="2.6" fill="'+col+'"/></svg>';
+}
+function shortDate(s){const p=s.split("-");return p[2]+"."+p[1];}
 
-                <div class="bg-blue-800 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">Стойка 2</div>
-                      <div class="text-xs opacity-80">CPU серверы × 5 + Хранилище</div>
-                    </div>
-                    <i class="fas fa-database text-2xl"></i>
-                  </div>
-                </div>
-
-                <div class="bg-gray-700 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">UPS + Охлаждение</div>
-                      <div class="text-xs opacity-80">Резервное питание</div>
-                    </div>
-                    <i class="fas fa-bolt text-2xl"></i>
-                  </div>
-                </div>
-
-                <div class="bg-gray-600 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">Сетевое оборудование</div>
-                      <div class="text-xs opacity-80">Коммутаторы 25–40 Гбит/с</div>
-                    </div>
-                    <i class="fas fa-network-wired text-2xl"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h4 class="text-lg font-bold text-gray-900 mb-2">Преимущество планировки</h4>
-              <p class="text-gray-700 leading-relaxed">Правильная организация потоков воздуха обеспечивает эффективное охлаждение, удобное обслуживание и возможность расширения в будущем</p>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Investment summary for Variant 1 only -->
-    <div class="max-w-6xl mx-auto px-6 py-16">
-      <h2 class="text-4xl font-bold text-gray-900 mb-12">Общие Инвестиции — Вариант 1</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        <div class="bg-gray-900 rounded-lg p-8 text-white shadow-lg border border-gray-700">
-          <div class="text-lg mb-4 text-gray-300 uppercase tracking-wide">Единоразовые инвестиции</div>
-          <div class="text-5xl font-bold mb-6">$190 – 320 тыс</div>
-          <div class="space-y-3 text-gray-300">
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-400 mt-1"></i>
-              <span>Серверное оборудование (собственное)</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-400 mt-1"></i>
-              <span>Камеры и системы безопасности</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-400 mt-1"></i>
-              <span>Установка и настройка</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-400 mt-1"></i>
-              <span>Обучение персонала</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-blue-900 rounded-lg p-8 text-white shadow-lg border border-blue-700">
-          <div class="text-lg mb-4 text-blue-200 uppercase tracking-wide">Ежемесячная эксплуатация</div>
-          <div class="text-5xl font-bold mb-6">$4 – 6 тыс</div>
-          <div class="space-y-3 text-blue-100">
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-300 mt-1"></i>
-              <span>Техническая поддержка 24/7</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-300 mt-1"></i>
-              <span>Обновления системы</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-300 mt-1"></i>
-              <span>Электроэнергия</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-blue-300 mt-1"></i>
-              <span>Обслуживание оборудования</span>
-            </div>
-          </div>
-        </div>
-        
-      </div>
-
-      <div class="mt-12 text-center">
-        <div class="inline-block bg-gray-900 rounded-lg px-12 py-8 text-white shadow-lg border border-gray-700">
-          <div class="text-lg mb-3 text-gray-400 uppercase tracking-wide">Полный срок внедрения (этапы 1–4)</div>
-          <div class="text-6xl font-bold">12–18 месяцев</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Variant 2 - Complete and independent content with different pricing -->
-  <div id="variant2" class="variant-content">
-    <div class="bg-white py-16 border-t border-gray-200">
-      <div class="max-w-6xl mx-auto px-6">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Вариант 2 — обучение в облаке, а в БЦ только работа моделей</h2>
-        <p class="text-gray-600 mb-12 text-lg">Экономичное решение с облачным обучением</p>
-
-        <!-- Этап 1 Вариант 2 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-800">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">1</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Подготовка и Разработка Основы</h3>
-              <p class="text-gray-600 mb-4">Создание базовой системы с облачным обучением</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">1–2 месяца</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Операционные Расходы</div>
-                  <div class="text-xl font-bold accent-color">$1 800 – 2 300</div>
-                  <div class="text-sm text-gray-500">в месяц</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Режим работы</div>
-                  <div class="text-xl font-bold text-gray-900">Удалённо</div>
-                </div>
-              </div>
-
-              <div class="bg-purple-50 rounded-lg p-4 mb-4 border border-purple-200">
-                <div class="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">Используемые ресурсы:</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700">
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-cloud text-purple-600 mt-1"></i>
-                    <span>GPU в облаке: по требованию</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-server text-purple-600 mt-1"></i>
-                    <span>CPU: 2–3 сервера (backend, staging)</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-database text-purple-600 mt-1"></i>
-                    <span>Хранилище облачное: ~5 ТБ</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-brain text-purple-600 mt-1"></i>
-                    <span>MLOps в облаке</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-purple-50 p-4 rounded-lg border border-purple-100">
-                <strong class="accent-color">Результат:</strong> Готовая программная платформа с облачным обучением моделей
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Этап 2 Вариант 2 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-700">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">2</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Подготовка к Промышленному Запуску</h3>
-              <p class="text-gray-600 mb-4">Усиление системы и подготовка для БЦ</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">3–6 месяцев</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Операционные Расходы</div>
-                  <div class="text-xl font-bold accent-color">$3 800 – 5 200</div>
-                  <div class="text-sm text-gray-500">в месяц</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Режим работы</div>
-                  <div class="text-xl font-bold text-gray-900">Удалённо</div>
-                </div>
-              </div>
-
-              <div class="bg-purple-50 rounded-lg p-4 mb-4 border border-purple-200">
-                <div class="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">Используемые ресурсы:</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700">
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-cloud text-purple-600 mt-1"></i>
-                    <span>GPU в облаке: активное обучение</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-server text-purple-600 mt-1"></i>
-                    <span>CPU: усиленный backend</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-database text-purple-600 mt-1"></i>
-                    <span>Облачное хранилище: 10–15 ТБ</span>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <i class="fas fa-code-branch text-purple-600 mt-1"></i>
-                    <span>MLOps: registry, автодеплой</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-purple-50 p-4 rounded-lg border border-purple-100">
-                <strong class="accent-color">Результат:</strong> Готовые обученные модели для развертывания в БЦ
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Этап 3 Вариант 2 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-600">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">3</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Пилотный Запуск в Здании</h3>
-              <p class="text-gray-600 mb-4">Установка упрощённого оборудования для работы моделей</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">3–4 месяца</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Оборудование</div>
-                  <div class="text-xl font-bold accent-color">$85 – 130 тыс</div>
-                  <div class="text-sm text-gray-500">единоразово</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Камеры</div>
-                  <div class="text-xl font-bold text-gray-900">30–40 шт</div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                <div class="text-xs text-gray-500 mb-2 uppercase tracking-wide">Что устанавливается:</div>
-                <div class="grid grid-cols-2 gap-2 text-sm text-gray-700">
-                  <div><i class="fas fa-check text-green-600"></i> GPU-серверы: 3 шт (только inference)</div>
-                  <div><i class="fas fa-check text-green-600"></i> CPU-серверы: 2 шт</div>
-                  <div><i class="fas fa-check text-green-600"></i> Хранилище: 20–30 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> SSD: 1–2 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> UPS (бесперебойное питание)</div>
-                  <div><i class="fas fa-check text-green-600"></i> Охлаждение серверной</div>
-                  <div><i class="fas fa-check text-green-600"></i> Сеть 10–25 Гбит/с</div>
-                  <div><i class="fas fa-check text-green-600"></i> 1 стойка, кондиционеры</div>
-                </div>
-              </div>
-
-              <div class="bg-purple-50 rounded-lg p-4 mb-4 border border-purple-200">
-                <div class="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">AI-анализ в реальном времени:</div>
-                <div class="text-gray-700">15–25 видеопотоков обрабатываются готовыми моделями. Обучение происходит в облаке.</div>
-              </div>
-              
-              <div class="text-gray-700 bg-purple-50 p-4 rounded-lg border border-purple-100">
-                <strong class="accent-color">Результат:</strong> Работающая система на части здания с облачным обучением
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Этап 4 Вариант 2 -->
-        <div class="mb-8 bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-500">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">4</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Полный Запуск Всего Здания</h3>
-              <p class="text-gray-600 mb-4">Подключение всех этажей с облачным обучением</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">4–6 месяцев</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Доп. оборудование</div>
-                  <div class="text-xl font-bold accent-color">$60 – 110 тыс</div>
-                  <div class="text-sm text-gray-500">единоразово</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Эксплуатация</div>
-                  <div class="text-xl font-bold accent-color">$5 000 – 7 500</div>
-                  <div class="text-sm text-gray-500">в месяц</div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                <div class="text-xs text-gray-500 mb-2 uppercase tracking-wide">Полное покрытие здания:</div>
-                <div class="grid grid-cols-2 gap-2 text-sm text-gray-700">
-                  <div><i class="fas fa-check text-green-600"></i> Все 90 камер подключены</div>
-                  <div><i class="fas fa-check text-green-600"></i> 45 потоков AI-анализа</div>
-                  <div><i class="fas fa-check text-green-600"></i> GPU-серверы: 5 шт (inference)</div>
-                  <div><i class="fas fa-check text-green-600"></i> CPU-серверы: 4 шт</div>
-                  <div><i class="fas fa-check text-green-600"></i> Хранилище: 40–60 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> SSD: 2–4 ТБ</div>
-                  <div><i class="fas fa-check text-green-600"></i> Биометрия и QR-доступ</div>
-                  <div><i class="fas fa-check text-green-600"></i> Поддержка 24/7</div>
-                </div>
-              </div>
-
-              <div class="bg-purple-50 rounded-lg p-4 mb-4 border border-purple-200">
-                <div class="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">Инфраструктура:</div>
-                <div class="grid grid-cols-2 gap-2 text-sm text-gray-700">
-                  <div><i class="fas fa-check text-purple-600"></i> 1–2 стойки оборудования</div>
-                  <div><i class="fas fa-check text-purple-600"></i> Сеть 25–40 Гбит/с</div>
-                  <div><i class="fas fa-check text-purple-600"></i> Резервное питание UPS</div>
-                  <div><i class="fas fa-check text-purple-600"></i> Облачная связь для обучения</div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-purple-50 p-4 rounded-lg border border-purple-100">
-                <strong class="accent-color">Результат:</strong> Полностью работающий умный БЦ с гибридной инфраструктурой
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Этап 5 Вариант 2 -->
-        <div class="bg-white rounded-lg p-8 shadow-md border-l-4 border-blue-400">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0">
-              <div class="w-16 h-16 rounded-lg bg-gray-900 text-white flex items-center justify-center text-2xl font-bold">5</div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">Долгосрочная Поддержка и Развитие</h3>
-              <p class="text-gray-600 mb-4">Обслуживание с облачным обучением</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Срок</div>
-                  <div class="text-xl font-bold text-gray-900">Постоянно</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Операционные Расходы</div>
-                  <div class="text-xl font-bold accent-color">$5 000 – 7 500</div>
-                  <div class="text-sm text-gray-500">в месяц (включая облако)</div>
-                </div>
-              </div>
-              
-              <div class="text-gray-700 bg-purple-50 p-4 rounded-lg border border-purple-100">
-                <strong class="accent-color">Результат:</strong> Стабильная работа с постоянным улучшением моделей в облаке
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Server room section for variant 2 -->
-    <div class="bg-gray-50 py-16 border-t border-gray-200">
-      <div class="max-w-6xl mx-auto px-6">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Серверная Комната — Вариант 2</h2>
-        <p class="text-gray-600 mb-12 text-lg">Упрощённые требования к помещению (только для работы моделей)</p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          <div class="bg-white rounded-lg p-8 shadow-md border border-gray-200">
-            <h3 class="text-2xl font-bold text-gray-900 mb-6">Размеры помещения</h3>
-            
-            <div class="space-y-4">
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <i class="fas fa-expand-arrows-alt text-purple-700 text-xl"></i>
-                </div>
-                <div>
-                  <div class="font-bold text-lg text-gray-900 mb-1">Площадь: 12–18 м²</div>
-                  <div class="text-gray-600 text-sm">Меньшее пространство благодаря облачному обучению</div>
-                </div>
-              </div>
-
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <i class="fas fa-ruler-vertical text-purple-700 text-xl"></i>
-                </div>
-                <div>
-                  <div class="font-bold text-lg text-gray-900 mb-1">Высота потолков: 3+ метра</div>
-                  <div class="text-gray-600 text-sm">Для циркуляции воздуха</div>
-                </div>
-              </div>
-
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <i class="fas fa-door-open text-purple-700 text-xl"></i>
-                </div>
-                <div>
-                  <div class="font-bold text-lg text-gray-900 mb-1">Дверь: ширина 90+ см</div>
-                  <div class="text-gray-600 text-sm">Для заноса оборудования</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-8 pt-6 border-t border-gray-200">
-              <h4 class="text-lg font-bold text-gray-900 mb-4">Требования к помещению</h4>
-              <ul class="space-y-2 text-gray-700">
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Отдельное помещение с контролем доступа</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Система пожаротушения</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Кондиционирование 24/7</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Резервное электропитание</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Выделенная электролиния 15+ кВт</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <i class="fas fa-check-circle text-green-600 mt-1"></i>
-                  <span>Стабильный интернет для облака</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-lg p-8 shadow-md border border-gray-200">
-            <h3 class="text-2xl font-bold text-gray-900 mb-6">Размещение оборудования</h3>
-            
-            <div class="bg-gray-100 rounded-lg p-6 mb-6 border-2 border-dashed border-gray-300">
-              <div class="text-center text-gray-500 mb-4 font-semibold">План серверной (упрощённый)</div>
-              
-              <div class="space-y-4">
-                <div class="bg-purple-900 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">Стойка 1</div>
-                      <div class="text-xs opacity-80">GPU inference × 5 + CPU × 4</div>
-                    </div>
-                    <i class="fas fa-server text-2xl"></i>
-                  </div>
-                </div>
-
-                <div class="bg-purple-800 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">Хранилище</div>
-                      <div class="text-xs opacity-80">40–60 ТБ HDD + 2–4 ТБ SSD</div>
-                    </div>
-                    <i class="fas fa-database text-2xl"></i>
-                  </div>
-                </div>
-
-                <div class="bg-gray-700 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">UPS + Охлаждение</div>
-                      <div class="text-xs opacity-80">Компактная система</div>
-                    </div>
-                    <i class="fas fa-bolt text-2xl"></i>
-                  </div>
-                </div>
-
-                <div class="bg-gray-600 text-white p-4 rounded-lg">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <div class="font-bold text-sm">Сетевое оборудование</div>
-                      <div class="text-xs opacity-80">Связь с облаком</div>
-                    </div>
-                    <i class="fas fa-network-wired text-2xl"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <h4 class="text-lg font-bold text-gray-900 mb-2">Преимущество подхода</h4>
-              <p class="text-gray-700 leading-relaxed">Меньше оборудования в БЦ означает меньшие первоначальные затраты и более простое обслуживание. Обучение происходит в облаке.</p>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Investment summary for Variant 2 with different costs -->
-    <div class="max-w-6xl mx-auto px-6 py-16">
-      <h2 class="text-4xl font-bold text-gray-900 mb-12">Общие Инвестиции — Вариант 2</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        <div class="bg-gray-900 rounded-lg p-8 text-white shadow-lg border border-gray-700">
-          <div class="text-lg mb-4 text-gray-300 uppercase tracking-wide">Единоразовые инвестиции</div>
-          <div class="text-5xl font-bold mb-6">$110 – 240 тыс</div>
-          <div class="space-y-3 text-gray-300">
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-400 mt-1"></i>
-              <span>Серверы для работы моделей (меньше)</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-400 mt-1"></i>
-              <span>Камеры и системы безопасности</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-400 mt-1"></i>
-              <span>Установка и настройка</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-400 mt-1"></i>
-              <span>Обучение персонала</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-purple-900 rounded-lg p-8 text-white shadow-lg border border-purple-700">
-          <div class="text-lg mb-4 text-purple-200 uppercase tracking-wide">Ежемесячная эксплуатация</div>
-          <div class="text-5xl font-bold mb-6">$5 – 7.5 тыс</div>
-          <div class="space-y-3 text-purple-100">
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-300 mt-1"></i>
-              <span>Техническая поддержка 24/7</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-300 mt-1"></i>
-              <span>Облачное обучение моделей</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-300 mt-1"></i>
-              <span>Электроэнергия (меньше)</span>
-            </div>
-            <div class="flex items-start gap-3">
-              <i class="fas fa-check-circle text-purple-300 mt-1"></i>
-              <span>Обслуживание оборудования</span>
-            </div>
-          </div>
-        </div>
-        
-      </div>
-
-      <div class="mt-12 text-center">
-        <div class="inline-block bg-gray-900 rounded-lg px-12 py-8 text-white shadow-lg border border-gray-700">
-          <div class="text-lg mb-3 text-gray-400 uppercase tracking-wide">Полный срок внедрения (этапы 1–4)</div>
-          <div class="text-6xl font-bold">12–18 месяцев</div>
-        </div>
-      </div>
-
-      <!-- Added comparison table for both variants -->
-      <div class="mt-16 bg-white rounded-lg p-8 shadow-lg border border-gray-200">
-        <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">Сравнение вариантов</h3>
-        
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead>
-              <tr class="border-b-2 border-gray-300">
-                <th class="py-4 px-4 font-bold text-gray-900">Параметр</th>
-                <th class="py-4 px-4 font-bold text-blue-900 text-center">Вариант 1</th>
-                <th class="py-4 px-4 font-bold text-purple-900 text-center">Вариант 2</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="border-b border-gray-200">
-                <td class="py-4 px-4 font-semibold">Первоначальные затраты</td>
-                <td class="py-4 px-4 text-center">$190 – 320 тыс</td>
-                <td class="py-4 px-4 text-center text-green-600 font-bold">$110 – 200 тыс</td>
-              </tr>
-              <tr class="border-b border-gray-200 bg-gray-50">
-                <td class="py-4 px-4 font-semibold">Ежемесячные затраты</td>
-                <td class="py-4 px-4 text-center text-green-600 font-bold">$4 – 6 тыс</td>
-                <td class="py-4 px-4 text-center">$5 – 7.5 тыс</td>
-              </tr>
-              <tr class="border-b border-gray-200">
-                <td class="py-4 px-4 font-semibold">Площадь серверной</td>
-                <td class="py-4 px-4 text-center">18–25 м²</td>
-                <td class="py-4 px-4 text-center text-green-600 font-bold">12–18 м²</td>
-              </tr>
-              <tr class="border-b border-gray-200 bg-gray-50">
-                <td class="py-4 px-4 font-semibold">GPU-серверы (полный запуск)</td>
-                <td class="py-4 px-4 text-center">6 шт</td>
-                <td class="py-4 px-4 text-center text-green-600 font-bold">5 шт</td>
-              </tr>
-              <tr class="border-b border-gray-200">
-                <td class="py-4 px-4 font-semibold">Обучение моделей</td>
-                <td class="py-4 px-4 text-center text-green-600 font-bold">На своих серверах</td>
-                <td class="py-4 px-4 text-center">В облаке</td>
-              </tr>
-              <tr class="border-b border-gray-200 bg-gray-50">
-                <td class="py-4 px-4 font-semibold">Контроль данных</td>
-                <td class="py-4 px-4 text-center text-green-600 font-bold">Полный</td>
-                <td class="py-4 px-4 text-center">Частичный</td>
-              </tr>
-              <tr class="border-b border-gray-200">
-                <td class="py-4 px-4 font-semibold">Гибкость обучения</td>
-                <td class="py-4 px-4 text-center">Средняя</td>
-                <td class="py-4 px-4 text-center text-green-600 font-bold">Высокая</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-
-
-  <!-- Updated JavaScript for proper variant switching -->
-  <script>
-    function showVariant(variantNum) {
-      const variant1 = document.getElementById('variant1');
-      const variant2 = document.getElementById('variant2');
-      const btn1 = document.getElementById('variant1-btn');
-      const btn2 = document.getElementById('variant2-btn');
-      
-      // Hide all variants
-      variant1.classList.remove('active');
-      variant2.classList.remove('active');
-      
-      // Remove active class from all buttons
-      btn1.classList.remove('active', 'bg-blue-800', 'text-white');
-      btn1.classList.add('bg-white', 'text-blue-800');
-      btn2.classList.remove('active', 'bg-blue-800', 'text-white');
-      btn2.classList.add('bg-white', 'text-blue-800');
-      
-      // Show selected variant and activate button
-      if (variantNum === 1) {
-        variant1.classList.add('active');
-        btn1.classList.add('active', 'bg-blue-800', 'text-white');
-        btn1.classList.remove('bg-white', 'text-blue-800');
-      } else {
-        variant2.classList.add('active');
-        btn2.classList.add('active', 'bg-blue-800', 'text-white');
-        btn2.classList.remove('bg-white', 'text-blue-800');
+function renderProgress(){
+  main.innerHTML="";
+  const h=state.hist||{};
+  let any=false;
+  for(const k in h){if(h[k].length)any=true;}
+  if(!any){
+    main.innerHTML='<div style="height:18px"></div><div class="restday"><b>Данных пока нет</b>Отметь подходы на тренировке - прогресс появится здесь после первой сессии.</div>';
+    return;
+  }
+  ["mon","wed","fri","sun"].forEach(day=>{
+    const p=PROGRAM[day];
+    const g=document.createElement("div");g.className="pgroup";
+    g.innerHTML='<h3>'+p.name+' · '+p.note+'</h3>';
+    let shown=0;
+    p.ex.forEach((e,i)=>{
+      const arr=(h[day+"|"+i]||[]);
+      if(!arr.length)return;
+      shown++;
+      const cur_=arr[arr.length-1], prev=arr.length>1?arr[arr.length-2]:null;
+      const card=document.createElement("div");card.className="pex";
+      let delta='<span class="pdelta flat">первая запись</span>';
+      if(prev){
+        const dw=cur_.w-prev.w, dv=cur_.v-prev.v;
+        if(dw>0)delta='<span class="pdelta up">+'+trim(dw)+' кг</span>';
+        else if(dw<0)delta='<span class="pdelta down">'+trim(dw)+' кг</span>';
+        else if(cur_.r>prev.r)delta='<span class="pdelta up">+'+(cur_.r-prev.r)+' повт.</span>';
+        else if(cur_.r<prev.r)delta='<span class="pdelta down">'+(cur_.r-prev.r)+' повт.</span>';
+        else if(dv>0)delta='<span class="pdelta up">объём +'+dv+'</span>';
+        else delta='<span class="pdelta flat">без изменений</span>';
       }
-    }
-  </script>
+      const val=e.w
+        ? '<div class="pnow">'+trim(cur_.w)+'<small>кг × '+cur_.r+'</small></div>'
+        : '<div class="pnow">'+cur_.r+'<small>'+(e.sec?"сек":"повт")+'</small></div>';
+      const hist=arr.slice(-6).map(a=>shortDate(a.d)+": "+(e.w?trim(a.w)+"кг×"+a.r:a.r+(e.sec?"с":""))).join("  ·  ");
+      card.innerHTML='<div class="pname">'+e.n+'</div>'+
+        '<div class="pline">'+val+delta+(e.w?spark(arr):"")+'</div>'+
+        '<div class="phist">'+hist+'</div>';
+      g.appendChild(card);
+    });
+    if(shown)main.appendChild(g);
+  });
+  const foot=document.createElement("div");foot.className="foot";
+  const b=document.createElement("button");
+  b.textContent="Стереть историю прогресса";
+  b.onclick=()=>{if(confirm("Удалить всю историю? Это необратимо."))
+    {state.hist={};save();renderProgress();}};
+  foot.appendChild(b);main.appendChild(foot);
+}
+function trim(n){return (Math.round(n*10)/10).toString();}
 
+function rulesHTML(){
+  let v='<table class="vol">';
+  VOLUME.forEach(r=>v+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>');
+  v+='</table>';
+  return '<div class="rules"><details><summary>Правила программы</summary><ol>'+
+  '<li><b>Прогрессия двойная.</b> Вышел на верх диапазона во всех подходах - добавляй 2.5-5 кг и возвращайся к нижней границе.</li>'+
+  '<li><b>1-3 повтора в запасе</b> в каждом рабочем подходе. Последний подход изоляции можно до отказа.</li>'+
+  '<li><b>Рука.</b> Гантели вместо штанги первые 6-8 недель, брусья без веса первые 4-6.</li>'+
+  '<li><b>Веса записывай сразу</b> - поле подставит прошлый вес в следующий раз.</li>'+
+  '<li><b>Питание.</b> Дефицит 300-500 ккал, белок 1.8-2.2 г на кг. Без этого будет расти сила, но не изменится вид.</li>'+
+  '<li><b>Пересмотр через 8-10 недель</b> или при остановке прогресса на 2-3 недели.</li>'+
+  '</ol></details><details><summary>Недельный объём</summary>'+v+'</details></div>';
+}
+
+/* ---------- init ---------- */
+let view="day";
+const progBtn=document.getElementById("tab-prog");
+const daysBar=document.getElementById("days");
+progBtn.onclick=()=>{
+  view=(view==="day")?"prog":"day";
+  progBtn.classList.toggle("on",view==="prog");
+  progBtn.textContent=(view==="prog")?"Тренировка":"Прогресс";
+  daysBar.style.display=(view==="prog")?"none":"flex";
+  if(view==="prog")renderProgress();else renderDay();
+  window.scrollTo({top:0});
+};
+
+(function(){
+  load();
+  renderDays();renderDay();
+})();
+</script>
 </body>
 </html>
