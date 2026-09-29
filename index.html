@@ -89,6 +89,19 @@
   .bar{height:5px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:6px;}
   .bar i{display:block;height:100%;background:var(--done);width:0;transition:width .25s;}
   .count{font-size:15px;color:var(--muted);white-space:nowrap;}
+  .daterow{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13.5px;color:var(--muted);flex-wrap:wrap;}
+  .daterow .dl{flex:1;min-width:120px;}
+  .daterow .dl b{color:var(--amber);font-weight:600;}
+  .daterow.back{background:var(--amber-wash);border:1px solid var(--amber-dim);border-radius:8px;padding:7px 10px;}
+  .daterow input[type=date]{
+    background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-family:inherit;font-size:14.5px;
+    font-weight:600;border-radius:8px;padding:6px 9px;min-height:34px;-webkit-appearance:none;appearance:none;
+  }
+  .daterow input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.8);}
+  .daterow button{
+    background:transparent;border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:13.5px;
+    padding:6px 10px;border-radius:8px;cursor:pointer;
+  }
   .livevol{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-bottom:12px;}
   .livevol b{color:var(--text);font-weight:600;}
 
@@ -434,6 +447,10 @@ function trim(n){return (Math.round(n*10)/10).toString();}
 function fmtN(n){return Math.round(n).toLocaleString("ru-RU");}
 function fmtK(n){return n>=10000?(Math.round(n/100)/10).toLocaleString("ru-RU")+"к":fmtN(n);}
 function fmt(s){return s>=60?(Math.floor(s/60)+(s%60?":"+pad(s%60):" мин")):(s+" сек");}
+/* дата, за которую идёт запись: null = сегодня, иначе задним числом */
+let logFor=null;
+function sessDate(){return logFor||todayKey();}
+function fmtTime(ts){const d=new Date(ts);return pad(d.getDate())+"."+pad(d.getMonth()+1)+" "+pad(d.getHours())+":"+pad(d.getMinutes());}
 function fmtDur(ms){const m=Math.round(ms/60000);return m>=60?Math.floor(m/60)+" ч "+(m%60)+" мин":m+" мин";}
 function e1rm(w,r){if(!w||!r)return 0;return r===1?w:w*(1+r/30);}
 function range(e){const p=String(e.r).split("-").map(Number);return {lo:p[0],hi:p[p.length-1]};}
@@ -470,10 +487,35 @@ let saveT=null;
 function save(){
   clearTimeout(saveT);
   saveT=setTimeout(()=>{
+    saveT=null;
     try{localStorage.setItem(KEY,JSON.stringify(state));}
     catch(e){storageOK=false;}
   },300);
 }
+/* снимок перед опасным действием - кнопка «Вернуть данные» в подвале */
+const UKEY=KEY+"-undo";
+function snapshot(label){try{localStorage.setItem(UKEY,JSON.stringify({t:Date.now(),l:label,s:state}));}catch(e){}}
+function undoInfo(){try{const r=localStorage.getItem(UKEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+function undoButton(){
+  const u=undoInfo();if(!u||!u.s)return null;
+  const b=el("button",null,"Вернуть данные до «"+u.l+"» ("+fmtTime(u.t)+")");
+  b.style.cssText="margin-top:8px;border-color:var(--amber);color:var(--amber);";
+  b.onclick=()=>{
+    if(!confirm("Вернуть данные, какими они были до «"+u.l+"»? Текущие данные заменятся."))return;
+    state=u.s;normalize();freshenLogs();saveNow();
+    try{localStorage.removeItem(UKEY);}catch(e){}
+    if(view==="day")renderDay();else renderProgress();
+    toast("Данные возвращены");
+  };
+  return b;
+}
+/* мгновенная запись: для критичных действий и при уходе приложения в фон */
+function saveNow(){
+  clearTimeout(saveT);
+  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){storageOK=false;}
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&saveT)saveNow();});
+window.addEventListener("pagehide",()=>{if(saveT)saveNow();});
 function slot(day,i,j){
   const k=day+"|"+i;
   if(!state.log[k])state.log[k]=[];
@@ -502,8 +544,9 @@ function freshenLogs(){
 
 /* ---------- history ---------- */
 function touchSession(day){
-  const t=todayKey();
+  const t=sessDate();
   state.logDate[day]=t;
+  if(logFor){state.sess[t]=state.sess[t]||{day:day};state.sess[t].day=day;return;}
   const s=state.sess[t]||(state.sess[t]={day:day,t0:Date.now()});
   s.day=day;s.t1=Date.now();
 }
@@ -520,24 +563,25 @@ function recordHistory(day,i){
   }
   while(per.length&&per[per.length-1]===null)per.pop();
   if(!state.hist[k])state.hist[k]=[];
-  const arr=state.hist[k], t=todayKey();
+  const arr=state.hist[k], t=sessDate();
   const rec={d:t,w:best?best.w:0,r:best?best.r:0,v:Math.round(vol),n:n,s:per};
-  const last=arr[arr.length-1];
-  if(n===0){ if(last&&last.d===t)arr.pop(); touchSession(day); return; }
-  if(last&&last.d===t)arr[arr.length-1]=rec; else arr.push(rec);
+  const idx=arr.findIndex(x=>x.d===t);
+  if(n===0){ if(idx>=0)arr.splice(idx,1); touchSession(day); return; }
+  if(idx>=0)arr[idx]=rec;
+  else{ let p=arr.length; while(p>0&&arr[p-1].d>t)p--; arr.splice(p,0,rec); }
   if(arr.length>150)arr.shift();
   touchSession(day);
 }
 /* прошлая сессия (не сегодняшняя) */
 function lastSession(day,i){
   const a=state.hist[day+"|"+i];if(!a)return null;
-  const t=todayKey();
-  for(let k=a.length-1;k>=0;k--){if(a[k].d!==t)return a[k];}
+  const t=sessDate();
+  for(let k=a.length-1;k>=0;k--){if(a[k].d<t)return a[k];}
   return null;
 }
 function todayRec(day,i){
   const a=state.hist[day+"|"+i];if(!a||!a.length)return null;
-  const r=a[a.length-1];return r.d===todayKey()?r:null;
+  const r=a.find(x=>x.d===sessDate());return r||null;
 }
 function recReps(rec){
   if(rec.s)return rec.s.reduce((a,x)=>a+(x?x[1]:0),0);
@@ -641,20 +685,31 @@ function renderDay(){
     return;
   }
   main.appendChild(el("div","daymeta",'<h2>'+esc(p.name)+' <span style="color:var(--muted);font-weight:400">· '+esc(p.note)+'</span></h2><span class="count" id="cnt"></span>'));
+  const dr=el("div","daterow"+(logFor?" back":""),
+    '<span class="dl">'+(logFor?'Записываешь за <b>'+shortDate(logFor)+'</b> · таймер выключен':'Дата записи')+'</span>'+
+    '<input type="date" id="logdate" value="'+sessDate()+'" max="'+todayKey()+'" aria-label="Дата тренировки">'+
+    (logFor?'<button id="datetoday">сегодня</button>':''));
+  const di=dr.querySelector("#logdate");
+  di.onchange=()=>{
+    const v=di.value;if(!v||v>todayKey()){di.value=sessDate();return;}
+    const nv=(v===todayKey())?null:v;
+    if(nv===logFor)return;
+    clearDay(cur);logFor=nv;save();renderDay();
+    toast(nv?"Запись за "+shortDate(nv):"Запись за сегодня");
+  };
+  const dt=dr.querySelector("#datetoday");
+  if(dt)dt.onclick=()=>{clearDay(cur);logFor=null;save();renderDay();};
+  main.appendChild(dr);
   main.appendChild(el("div","bar",'<i id="fill"></i>'));
   main.appendChild(el("div","livevol",'<span id="lv1"></span><span id="lv2"></span>'));
 
   p.ex.forEach((e,i)=>main.appendChild(exCard(e,i)));
 
   const foot=el("div","foot");
-  const btn=el("button",null,"Сбросить день (веса останутся)");
+  const btn=el("button",null,"Очистить форму (история и веса останутся)");
   btn.onclick=()=>{
-    if(!confirm("Сбросить отметки и повторы за этот день? Запись в истории за сегодня тоже удалится."))return;
-    p.ex.forEach((e,i)=>{
-      const a=state.hist[cur+"|"+i];
-      if(a&&a.length&&a[a.length-1].d===todayKey())a.pop();
-    });
-    clearDay(cur);save();renderDay();
+    if(!confirm("Убрать галочки и повторы из формы? Всё, что отмечено, уже сохранено в истории и останется там."))return;
+    clearDay(cur);save();renderDay();toast("Форма очищена, история цела");
   };
   foot.appendChild(btn);
   const row=el("div","row");
@@ -670,11 +725,12 @@ function renderDay(){
   imp.onclick=()=>{
     const t=prompt("Вставь резервную копию:");
     if(!t)return;
-    try{const o=JSON.parse(t);if(!o||typeof o!=="object")throw 0;state=o;normalize();freshenLogs();save();renderDay();toast("Данные восстановлены");}
+    try{const o=JSON.parse(t);if(!o||typeof o!=="object")throw 0;snapshot("Восстановить");state=o;normalize();freshenLogs();saveNow();renderDay();toast("Данные восстановлены");}
     catch(e){alert("Не получилось прочитать. Проверь, что скопирован весь текст.");}
   };
   row.appendChild(exp);row.appendChild(imp);
   foot.appendChild(row);
+  const ub=undoButton();if(ub)foot.appendChild(ub);
   if(!storageOK){
     const w=el("div",null,"Браузер не сохраняет данные. Скорее всего включён приватный режим - открой страницу в обычной вкладке.");
     w.style.cssText="margin-top:10px;padding:10px;border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:14.5px;";
@@ -699,7 +755,7 @@ function exCard(e,i){
     (e.hint?' <br>'+esc(e.hint):'')+'</div></div></div>';
 
   const ls=lastSession(cur,i);
-  const all=(state.hist[cur+"|"+i]||[]).filter(r=>r.d!==todayKey());
+  const all=(state.hist[cur+"|"+i]||[]).filter(r=>r.d<sessDate());
   const ll=el("button","lastline"+(ls?"":" empty"));
   if(ls){
     ll.innerHTML='<div class="ll"><b>Прошлый раз '+shortDate(ls.d)+'</b> · '+
@@ -789,7 +845,7 @@ function setRow(e,i,j,ls){
     save();
     const isLast=(j===e.s-1);
     renderDay();
-    if(d.d)startTimer(e.rest,isLast?nextExercise(i):e.n+" · подход "+(j+2)+" из "+e.s);
+    if(d.d&&!logFor)startTimer(e.rest,isLast?nextExercise(i):e.n+" · подход "+(j+2)+" из "+e.s);
   };
   row.appendChild(b);
   markBeat(row,e,d,px);
@@ -1053,12 +1109,13 @@ function renderProgress(){
   const foot=el("div","foot");
   if(pview==="all"){
     const b=el("button",null,"Загрузить встроенную копию данных (28.09)");
-    b.onclick=()=>{if(confirm("Заменить текущие данные встроенной копией от 28.09.2026?")){state=JSON.parse(JSON.stringify(SEED));normalize();freshenLogs();save();renderProgress();toast("Копия загружена");}};
+    b.onclick=()=>{if(confirm("Заменить текущие данные встроенной копией от 28.09.2026?")){snapshot("Загрузить копию");state=JSON.parse(JSON.stringify(SEED));normalize();freshenLogs();saveNow();renderProgress();toast("Копия загружена");}};
     foot.appendChild(b);
     const c=el("button",null,"Стереть историю прогресса");c.style.marginTop="8px";
-    c.onclick=()=>{if(confirm("Удалить всю историю? Это необратимо.")){state.hist={};state.sess={};state.notes={};save();renderProgress();}};
+    c.onclick=()=>{if(confirm("Удалить всю историю? Вернуть можно будет кнопкой в подвале.")){snapshot("Стереть историю");state.hist={};state.sess={};state.notes={};saveNow();renderProgress();}};
     foot.appendChild(c);
   }
+  const ub=undoButton();if(ub)foot.appendChild(ub);
   main.appendChild(foot);
 }
 
