@@ -166,7 +166,6 @@
     gap:7px;align-items:center;margin-top:7px;
   }
   .slabel{font-size:14px;color:var(--muted);text-align:center;line-height:1.1;}
-  .slabel small{display:block;font-size:10.5px;opacity:.75;margin-top:1px;}
   .fld{position:relative;}
   .fld input{
     width:100%;background:var(--surface-2);border:1px solid transparent;
@@ -192,6 +191,28 @@
   .srow.on .fld input{background:var(--done-wash);color:var(--done);}
   .srow.on .slabel{color:var(--done);}
   .srow.beat .fld input{border-color:rgba(72,181,140,.55);}
+  .srow.short .fld input{border-color:var(--amber-dim);}
+  .fld span.was{font-size:12px;}
+  .fld span.was b{color:var(--text);font-weight:600;}
+  .fld.hasw input{padding-right:58px;}
+  .drow{
+    display:grid;grid-template-columns:22px 1fr 1fr 46px;
+    gap:7px;align-items:center;margin-top:5px;
+  }
+  .drow .slabel{color:var(--amber);font-size:16px;}
+  .drow .fld input{padding-top:7px;padding-bottom:7px;font-size:16px;border-color:var(--amber-dim);background:var(--amber-wash);}
+  .dx{
+    height:34px;border-radius:8px;border:1px solid var(--line);background:transparent;
+    color:var(--muted);font-size:20px;line-height:1;cursor:pointer;font-family:inherit;
+  }
+  .addx{
+    display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;margin:5px 0 0 29px;padding:4px 10px;
+    background:transparent;border:1px dashed var(--line);border-radius:7px;
+    color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;text-align:left;
+  }
+  .addx b{font-weight:600;}
+  .addx span{opacity:.75;}
+  .addx.need{border-color:var(--amber-dim);color:var(--amber);}
 
   /* ---------- timer dock ---------- */
   .dock{
@@ -718,7 +739,9 @@ function recordHistory(day,i){
     if(!s||!s.d){per.push(null);continue;}
     n++;
     const w=parseFloat(s.w)||0, r=parseFloat(s.r)||0;
-    vol+=w*r;per.push([w,r]);
+    vol+=w*r;
+    const xw=s.x?parseFloat(s.x.w)||0:0, xr=s.x?parseFloat(s.x.r)||0:0;
+    if(xr>0){vol+=xw*xr;per.push([w,r,xw,xr]);}else per.push([w,r]);
     if(!best||w>best.w||(w===best.w&&r>best.r))best={w:w,r:r};
   }
   while(per.length&&per[per.length-1]===null)per.pop();
@@ -772,7 +795,7 @@ function chipCls(e,x){
 function chipTxt(e,x){
   if(!x)return "–";
   if(!e.w||(x[0]===0))return x[1]+(e.sec?"с":"");
-  return trim(x[0])+"×"+x[1];
+  return trim(x[0])+"×"+x[1]+(x[3]?"+"+trim(x[2])+"×"+x[3]:"");
 }
 function setsHTML(e,rec,todayMark){
   if(rec.s&&rec.s.length){
@@ -972,10 +995,11 @@ function fillPanel(card,e,i,all){
 
 function setRow(e,i,j,ls){
   const d=slot(cur,i,j);
+  const wrap=el("div","sset");
   const row=el("div","srow"+(d.d?" on":""));
   const lastW=state.last[cur+"|"+i];
   const px=ls&&ls.s?ls.s[j]:null;
-  const lab=el("div","slabel",String(j+1)+(px?'<small>'+chipTxt(e,px)+'</small>':''));
+  const lab=el("div","slabel",String(j+1));
   row.appendChild(lab);
 
   const wf=el("div","fld");
@@ -990,10 +1014,12 @@ function setRow(e,i,j,ls){
   row.appendChild(wf);
 
   const rf=el("div","fld");
-  const rph=px?px[1]:e.r;
-  rf.innerHTML='<input type="number" inputmode="numeric" placeholder="'+esc(rph)+'"><span>'+(e.sec?"сек":"пвт")+'</span>';
+  /* в поле всегда цель из программы, а прошлый результат подписан справа */
+  rf.innerHTML='<input type="number" inputmode="numeric" placeholder="'+esc(e.r)+'">'+
+    (px?'<span class="was">было <b>'+px[1]+(px[3]?"+"+px[3]:"")+'</b></span>':'<span>'+(e.sec?"сек":"пвт")+'</span>');
+  if(px)rf.classList.add("hasw");
   const ri=rf.querySelector("input");ri.value=d.r;
-  ri.oninput=()=>{d.r=ri.value;touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px);updateLive();};
+  ri.oninput=()=>{d.r=ri.value;touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px);updateLive();if(d.d&&e.w)paintDropBtn(wrap,e,d);};
   row.appendChild(rf);
 
   const b=el("button","chk",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>');
@@ -1010,10 +1036,58 @@ function setRow(e,i,j,ls){
   };
   row.appendChild(b);
   markBeat(row,e,d,px);
+  wrap.appendChild(row);
+  if(e.w&&d.d){
+    let lastDone=-1;for(let q=0;q<e.s;q++)if(slot(cur,i,q).d)lastDone=q;
+    if(d.x)wrap.appendChild(dropRow(e,i,j,d,px));
+    else if(j===lastDone||shortBy(e,d)||(px&&px[3]))wrap.appendChild(dropBtn(e,i,j,d,px));
+  }
+  return wrap;
+}
+/* добивка: после рабочего подхода сбросил вес и добрал недостающие повторы */
+function shortBy(e,d){const r=parseFloat(d.r)||0,lo=range(e).lo;return r&&r<lo?lo-r:0;}
+function dropSuggest(d,px){
+  if(px&&px[3])return trim(px[2]);
+  const w=parseFloat(d.w)||0;return w?trim(Math.max(0,Math.round(w*0.8/2.5)*2.5)):"";
+}
+function paintDropBtn(wrap,e,d){
+  const btn=wrap.querySelector(".addx");if(!btn)return;
+  const k=shortBy(e,d);
+  btn.classList.toggle("need",!!k);
+  btn.querySelector("b").textContent=k?" · не хватило "+k:"";
+}
+function dropBtn(e,i,j,d,px){
+  const btn=el("button","addx","+ добивка меньшим весом<b></b>"+(px&&px[3]?'<span>было '+trim(px[2])+'×'+px[3]+'</span>':''));
+  const k=shortBy(e,d);
+  if(k){btn.classList.add("need");btn.querySelector("b").textContent=" · не хватило "+k;}
+  btn.onclick=()=>{
+    d.x={w:dropSuggest(d,px),r:""};save();renderDay();
+    const ri=main.querySelector('.ex[data-i="'+i+'"] .drow[data-j="'+j+'"] .dr');if(ri)ri.focus();
+  };
+  return btn;
+}
+function dropRow(e,i,j,d,px){
+  const row=el("div","drow");row.dataset.j=j;
+  row.appendChild(el("div","slabel","↳"));
+  const wf=el("div","fld");
+  wf.innerHTML='<input type="number" inputmode="decimal" step="0.5" placeholder="'+esc(dropSuggest(d,px)||"–")+'"><span>кг</span>';
+  const wi=wf.querySelector("input");wi.value=d.x.w;
+  wi.oninput=()=>{d.x.w=wi.value;recordHistory(cur,i);save();updateLive();};
+  row.appendChild(wf);
+  const rf=el("div","fld");
+  const k=shortBy(e,d);
+  rf.innerHTML='<input class="dr" type="number" inputmode="numeric" placeholder="'+(k?"+"+k:"+")+'"><span>пвт</span>';
+  const ri=rf.querySelector("input");ri.value=d.x.r;
+  ri.oninput=()=>{d.x.r=ri.value;recordHistory(cur,i);save();updateLive();};
+  row.appendChild(rf);
+  const x=el("button","dx","×");x.setAttribute("aria-label","Убрать добивку");
+  x.onclick=()=>{d.x=null;recordHistory(cur,i);save();renderDay();};
+  row.appendChild(x);
   return row;
 }
 /* подсветка: подход лучше прошлого раза */
 function markBeat(row,e,d,px){
+  row.classList.toggle("short",!!(d.d&&shortBy(e,d)));
   if(!px||!d.d){row.classList.remove("beat");return;}
   const w=parseFloat(d.w)||0,r=parseFloat(d.r)||0;
   const beat=e.w?(w>px[0]||(w===px[0]&&r>px[1])):r>px[1];
@@ -1030,7 +1104,8 @@ function updateLive(){
   let vol=0,lastVol=0,reps=0;
   p.ex.forEach((e,i)=>{
     if(!e.w)return;
-    for(let j=0;j<e.s;j++){const s=slot(cur,i,j);if(s.d){vol+=(parseFloat(s.w)||0)*(parseFloat(s.r)||0);reps+=parseFloat(s.r)||0;}}
+    for(let j=0;j<e.s;j++){const s=slot(cur,i,j);if(s.d){vol+=(parseFloat(s.w)||0)*(parseFloat(s.r)||0);reps+=parseFloat(s.r)||0;
+      if(s.x)vol+=(parseFloat(s.x.w)||0)*(parseFloat(s.x.r)||0);}}
     const ls=lastSession(cur,i);if(ls)lastVol+=ls.v||0;
   });
   const a=document.getElementById("lv1"),b=document.getElementById("lv2");
