@@ -135,6 +135,8 @@
   .ex.hopen .hpanel{display:block;}
   .hrow{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid rgba(46,81,100,.5);font-size:13.5px;}
   .hrow:last-child{border-bottom:none;}
+  .hedit{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;}
+  .hedit small{display:block;font-size:11px;color:var(--amber);opacity:.85;margin-top:2px;}
   .hdate{color:var(--muted);min-width:44px;padding-top:2px;}
   .hsets{flex:1;min-width:0;}
   .hvol{color:var(--muted);white-space:nowrap;padding-top:2px;text-align:right;min-width:52px;}
@@ -460,7 +462,7 @@ const VOLUME=[["Спина",14],["Грудь",13],["Квадрицепс",13],["
 const SEED={"log":{"sun|0":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"sun|1":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"sun|2":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"sun|3":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"sun|4":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|0":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|1":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|2":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|3":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|4":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|5":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|6":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"mon|7":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"wed|0":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"wed|1":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"wed|2":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"wed|3":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"wed|4":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"wed|5":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|0":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|1":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|2":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|3":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|4":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|5":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|6":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|7":[{"w":"","r":"","d":false},{"w":"","r":"","d":false},{"w":"","r":"","d":false}],"fri|8":[{"w":"","r":"","d":false},{"w":"","r":"","d":false}]},"last":{"wed|0":"100","wed|1":"135","wed|3":"30","wed|2":"36","wed|4":"76","wed|5":"0","fri|0":"70","fri|1":"45","fri|2":"70","fri|3":"42","fri|6":"12","fri|7":"24","fri|4":"30","fri|5":"45","fri|8":"28","sun|0":"10","sun|1":"30","sun|2":"22","sun|3":"65","mon|0":"26","mon|1":"70","mon|2":"24","mon|3":"65","mon|4":"30","mon|5":"20","mon|6":"10"},"done":{},"hist":{"wed|0":[{"d":"2026-09-09","w":100,"r":10,"v":3500,"n":4},{"d":"2026-09-16","w":100,"r":11,"v":3800,"n":4},{"d":"2026-09-26","w":100,"r":11,"v":4100,"n":4}],"wed|1":[{"d":"2026-09-09","w":125,"r":13,"v":4375,"n":3},{"d":"2026-09-16","w":125,"r":14,"v":4875,"n":3},{"d":"2026-09-26","w":135,"r":12,"v":4320,"n":3}],"wed|2":[{"d":"2026-09-09","w":32,"r":8,"v":704,"n":3},{"d":"2026-09-16","w":32,"r":8,"v":736,"n":3},{"d":"2026-09-26","w":36,"r":9,"v":828,"n":3}],"wed|3":[{"d":"2026-09-09","w":40,"r":11,"v":1070,"n":3},{"d":"2026-09-16","w":40,"r":11,"v":1280,"n":3},{"d":"2026-09-26","w":30,"r":10,"v":900,"n":3}],"wed|4":[{"d":"2026-09-09","w":64,"r":15,"v":4000,"n":4},{"d":"2026-09-16","w":72,"r":15,"v":4328,"n":4},{"d":"2026-09-26","w":76,"r":14,"v":3040,"n":3}],"wed|5":[{"d":"2026-09-09","w":25,"r":13,"v":850,"n":3},{"d":"2026-09-16","w":0,"r":12,"v":0,"n":3},{"d":"2026-09-26","w":0,"r":12,"v":0,"n":2}],"mon|0":[{"d":"2026-09-14","w":22,"r":10,"v":898,"n":4},{"d":"2026-09-21","w":26,"r":9,"v":980,"n":4}],"fri|0":[{"d":"2026-09-11","w":70,"r":11,"v":2660,"n":4},{"d":"2026-09-18","w":70,"r":11,"v":2800,"n":4},{"d":"2026-09-27","w":70,"r":10,"v":2590,"n":4}],"fri|1":[{"d":"2026-09-11","w":45,"r":7,"v":1115,"n":4},{"d":"2026-09-18","w":45,"r":9,"v":1350,"n":4},{"d":"2026-09-27","w":45,"r":9,"v":1575,"n":4}],"fri|2":[{"d":"2026-09-11","w":55,"r":11,"v":1485,"n":3},{"d":"2026-09-18","w":70,"r":9,"v":1900,"n":3},{"d":"2026-09-27","w":70,"r":10,"v":1750,"n":3}],"fri|3":[{"d":"2026-09-11","w":49,"r":12,"v":1302,"n":3},{"d":"2026-09-18","w":42,"r":11,"v":1176,"n":3},{"d":"2026-09-27","w":42,"r":9,"v":1050,"n":3}],"fri|6":[{"d":"2026-09-11","w":12,"r":12,"v":324,"n":3},{"d":"2026-09-18","w":12,"r":10,"v":276,"n":3},{"d":"2026-09-27","w":12,"r":10,"v":300,"n":3}],"fri|7":[{"d":"2026-09-11","w":24,"r":10,"v":736,"n":3},{"d":"2026-09-18","w":24,"r":15,"v":360,"n":1},{"d":"2026-09-27","w":24,"r":12,"v":816,"n":3}],"fri|4":[{"d":"2026-09-11","w":30,"r":10,"v":780,"n":3},{"d":"2026-09-18","w":20,"r":8,"v":500,"n":3},{"d":"2026-09-27","w":30,"r":10,"v":780,"n":3}],"fri|5":[{"d":"2026-09-11","w":25,"r":12,"v":900,"n":3},{"d":"2026-09-18","w":20,"r":11,"v":499,"n":3},{"d":"2026-09-27","w":45,"r":13,"v":1530,"n":3}],"fri|8":[{"d":"2026-09-11","w":28,"r":12,"v":644,"n":2},{"d":"2026-09-27","w":28,"r":12,"v":644,"n":2}],"sun|0":[{"d":"2026-09-13","w":10,"r":12,"v":410,"n":4},{"d":"2026-09-20","w":10,"r":12,"v":420,"n":4}],"sun|1":[{"d":"2026-09-13","w":38,"r":14,"v":1786,"n":4},{"d":"2026-09-20","w":30,"r":11,"v":1140,"n":4}],"sun|2":[{"d":"2026-09-13","w":22,"r":10,"v":598,"n":3},{"d":"2026-09-20","w":22,"r":10,"v":660,"n":3}],"sun|3":[{"d":"2026-09-13","w":68,"r":22,"v":5312,"n":4},{"d":"2026-09-20","w":65,"r":18,"v":3900,"n":4}],"sun|4":[{"d":"2026-09-13","w":0,"r":30,"v":0,"n":3},{"d":"2026-09-20","w":0,"r":30,"v":0,"n":2}],"mon|1":[{"d":"2026-09-14","w":60,"r":13,"v":2520,"n":4},{"d":"2026-09-21","w":70,"r":9,"v":2390,"n":4}],"mon|2":[{"d":"2026-09-14","w":22,"r":10,"v":550,"n":3},{"d":"2026-09-21","w":24,"r":10,"v":552,"n":3}],"mon|3":[{"d":"2026-09-14","w":85,"r":10,"v":2125,"n":3},{"d":"2026-09-21","w":65,"r":11,"v":1820,"n":3}],"mon|4":[{"d":"2026-09-14","w":40,"r":12,"v":1100,"n":3},{"d":"2026-09-21","w":30,"r":15,"v":1170,"n":3}],"mon|5":[{"d":"2026-09-14","w":18,"r":12,"v":594,"n":3},{"d":"2026-09-21","w":20,"r":12,"v":660,"n":3}],"mon|6":[{"d":"2026-09-14","w":12,"r":12,"v":374,"n":3},{"d":"2026-09-21","w":12,"r":12,"v":344,"n":3}],"mon|7":[{"d":"2026-09-14","w":0,"r":40,"v":0,"n":3},{"d":"2026-09-21","w":0,"r":45,"v":0,"n":3}]}};
 
 const KEY="gym-log-v1";
-const APP_VER="08.10 · добивки";
+const APP_VER="08.10 · правка прошлых";
 const DAY_IDS=["mon","wed","fri","sun"];
 let state={log:{},last:{},hist:{},done:{}};
 let cur=DAYS[[6,0,1,2,3,4,5][new Date().getDay()]].id;
@@ -704,6 +706,25 @@ function slot(day,i,j){
   if(!state.log[k][j])state.log[k][j]={w:"",r:"",d:false};
   return state.log[k][j];
 }
+/* форма за выбранную дату заполняется тем, что уже записано в истории - правки сразу идут туда же */
+function fillFromHist(day,date){
+  clearDay(day);
+  let any=false;
+  PROGRAM[day].ex.forEach((e,i)=>{
+    const rec=(state.hist[day+"|"+i]||[]).find(x=>x.d===date);if(!rec)return;
+    any=true;
+    const sets=rec.s&&rec.s.length?rec.s:Array.from({length:Math.min(rec.n,e.s)},()=>[rec.w,rec.r]);
+    state.log[day+"|"+i]=sets.map(x=>x?{w:e.w?String(x[0]):"",r:String(x[1]),d:true,x:x[3]?{w:String(x[2]),r:String(x[3])}:null}:{w:"",r:"",d:false});
+  });
+  if(any)state.logDate[day]=date;
+  return any;
+}
+function openDate(date){
+  logFor=(date===todayKey())?null:date;
+  const any=fillFromHist(cur,date);save();renderDay();
+  toast(any?"Тренировка "+shortDate(date)+" - правь, всё обновится":(logFor?"Запись за "+shortDate(date):"Запись за сегодня"));
+  return any;
+}
 function clearDay(day){
   PROGRAM[day].ex.forEach((e,i)=>{delete state.log[day+"|"+i];});
   delete state.logDate[day];
@@ -712,6 +733,7 @@ function clearDay(day){
 function freshenLogs(){
   const t=todayKey();
   DAY_IDS.forEach(day=>{
+    if(logFor&&day===cur)return;
     let ld=state.logDate[day];
     if(!ld){
       const hasDone=PROGRAM[day].ex.some((e,i)=>(state.log[day+"|"+i]||[]).some(s=>s&&s.d));
@@ -878,11 +900,10 @@ function renderDay(){
     const v=di.value;if(!v||v>todayKey()){di.value=sessDate();return;}
     const nv=(v===todayKey())?null:v;
     if(nv===logFor)return;
-    clearDay(cur);logFor=nv;save();renderDay();
-    toast(nv?"Запись за "+shortDate(nv):"Запись за сегодня");
+    openDate(v);
   };
   const dt=dr.querySelector("#datetoday");
-  if(dt)dt.onclick=()=>{clearDay(cur);logFor=null;save();renderDay();};
+  if(dt)dt.onclick=()=>openDate(todayKey());
   main.appendChild(dr);
   main.appendChild(el("div","bar",'<i id="fill"></i>'));
   main.appendChild(el("div","livevol",'<span id="lv1"></span><span id="lv2"></span>'));
@@ -979,14 +1000,15 @@ function fillPanel(card,e,i,all){
     let dv="";
     if(prev&&e.w&&rec.v){const d=rec.v-prev.v;dv='<span class="'+(d>0?"up":d<0?"down":"flat")+'">'+(d>0?"+":"")+fmtN(d)+'</span>';}
     const row=el("div","hrow",
-      '<div class="hdate">'+shortDate(rec.d)+'</div><div class="hsets">'+setsHTML(e,rec)+
+      '<div class="hdate"><button class="hedit" aria-label="Изменить тренировку '+shortDate(rec.d)+'">'+shortDate(rec.d)+'<small>изменить</small></button></div><div class="hsets">'+setsHTML(e,rec)+
       (state.notes[cur+"|"+i]&&state.notes[cur+"|"+i][rec.d]?'<div class="hnote">'+esc(state.notes[cur+"|"+i][rec.d])+'</div>':'')+'</div>'+
       (e.w?'<div class="hvol"><b>'+fmtN(rec.v)+'</b>'+dv+'</div>':'<div class="hvol"><b>'+recReps(rec)+'</b>'+(e.sec?"сек":"повт")+'</div>'));
+    row.querySelector(".hedit").onclick=()=>{openDate(rec.d);window.scrollTo({top:0,behavior:"smooth"});};
     hp.appendChild(row);
   });
-  const nb=el("button","notebtn","+ Заметка к сегодняшней тренировке");
+  const nb=el("button","notebtn",logFor?"+ Заметка к тренировке "+shortDate(logFor):"+ Заметка к сегодняшней тренировке");
   nb.onclick=()=>{
-    const k=cur+"|"+i,t=todayKey();
+    const k=cur+"|"+i,t=sessDate();
     const old=(state.notes[k]&&state.notes[k][t])||"";
     const txt=prompt("Заметка ("+e.n+"):",old);
     if(txt===null)return;
@@ -1011,7 +1033,7 @@ function setRow(e,i,j,ls){
     const ph=px?trim(px[0]):(lastW||"–");
     wf.innerHTML='<input type="number" inputmode="decimal" step="0.5" placeholder="'+esc(ph)+'"><span>кг</span>';
     const wi=wf.querySelector("input");wi.value=d.w;
-    wi.oninput=()=>{d.w=wi.value;state.last[cur+"|"+i]=wi.value;touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px);updateLive();};
+    wi.oninput=()=>{d.w=wi.value;if(!logFor)state.last[cur+"|"+i]=wi.value;touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px);updateLive();};
   }else{
     wf.innerHTML='<input type="text" value="Своё" disabled style="opacity:.45">';
   }
@@ -1113,7 +1135,7 @@ function updateLive(){
     const ls=lastSession(cur,i);if(ls)lastVol+=ls.v||0;
   });
   const a=document.getElementById("lv1"),b=document.getElementById("lv2");
-  if(a)a.innerHTML='Тоннаж сегодня: <b>'+fmtN(vol)+' кг</b>';
+  if(a)a.innerHTML='Тоннаж '+(logFor?shortDate(logFor):'сегодня')+': <b>'+fmtN(vol)+' кг</b>';
   if(b)b.innerHTML=lastVol?'Прошлый раз: <b>'+fmtN(lastVol)+' кг</b>':'';
 }
 
