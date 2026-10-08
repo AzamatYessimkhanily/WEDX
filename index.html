@@ -227,6 +227,17 @@
     background:transparent;color:var(--muted);font-family:inherit;font-size:15.5px;cursor:pointer;
   }
   .foot .row{display:flex;gap:8px;margin-top:8px;}
+  .foot .row>*{flex:1 1 0;min-width:0;}
+  .foot .btnlink{
+    flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;border-radius:var(--r);border:1px solid var(--line);
+    color:var(--amber);font-size:15.5px;text-decoration:none;
+  }
+  .cloudbox{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);}
+  .cloudbox .row{margin-top:10px;}
+  .cloudst{font-size:14.5px;font-weight:600;color:var(--text);}
+  .cloudst.warn{color:var(--amber);}
+  .cloudhelp{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.45;}
+  .cloudhelp b{color:var(--text);font-weight:600;}
   .rules{margin-top:16px;border-top:1px solid var(--line);padding-top:14px;}
   .rules summary{cursor:pointer;font-size:16px;font-weight:600;color:var(--muted);padding:6px 0;}
   .rules ol{margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:15.5px;}
@@ -488,8 +499,10 @@ function save(){
   clearTimeout(saveT);
   saveT=setTimeout(()=>{
     saveT=null;
+    state.savedAt=Date.now();
     try{localStorage.setItem(KEY,JSON.stringify(state));}
     catch(e){storageOK=false;}
+    cloudSchedule();
   },300);
 }
 /* снимок перед опасным действием - кнопка «Вернуть данные» в подвале */
@@ -511,11 +524,158 @@ function undoButton(){
 }
 /* мгновенная запись: для критичных действий и при уходе приложения в фон */
 function saveNow(){
-  clearTimeout(saveT);
-  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){storageOK=false;}
+  clearTimeout(saveT);saveT=null;
+  state.savedAt=Date.now();
+  writeLocal();
+  cloudSchedule();
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&saveT)saveNow();});
-window.addEventListener("pagehide",()=>{if(saveT)saveNow();});
+/* запись без отметки времени - для данных, пришедших из облака */
+function writeLocal(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){storageOK=false;}}
+function rerender(){if(view==="day")renderDay();else renderProgress();}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){if(saveT)saveNow();cloudFlush();}});
+window.addEventListener("pagehide",()=>{if(saveT)saveNow();cloudFlush();});
+
+/* ---------- облако: секретный gist в GitHub пользователя ---------- */
+const CKEY=KEY+"-cloud",GH="https://api.github.com/gists",GFILE="wedx-gym-log.json";
+const TOKEN_URL="https://github.com/settings/tokens/new?scopes=gist&description=WEDX%20backup";
+let cloud=null,pushT=null,pushing=false,pushAgain=false,syncing=false;
+function cloudLoad(){try{cloud=JSON.parse(localStorage.getItem(CKEY)||"null");}catch(e){cloud=null;}}
+function cloudStore(){try{if(cloud)localStorage.setItem(CKEY,JSON.stringify(cloud));else localStorage.removeItem(CKEY);}catch(e){}}
+function gh(path,opt){
+  opt=opt||{};
+  const h={Authorization:"Bearer "+cloud.token,Accept:"application/vnd.github+json"};
+  if(opt.body)h["Content-Type"]="application/json";
+  return fetch(GH+path,{method:opt.method||"GET",body:opt.body,headers:h,keepalive:!!opt.keepalive,cache:"no-store"})
+    .then(r=>{if(!r.ok)throw r.status;return r.json();});
+}
+async function cloudRead(id){
+  const g=await gh("/"+id);
+  const f=g.files&&g.files[GFILE];
+  if(!f)return null;
+  const txt=f.truncated?await fetch(f.raw_url,{cache:"no-store"}).then(r=>r.text()):f.content;
+  try{const o=JSON.parse(txt);return o&&typeof o==="object"?o:null;}catch(e){return null;}
+}
+function cloudPending(){return !!(cloud&&cloud.id&&(state.savedAt||0)>(cloud.at||0));}
+function cloudSchedule(){
+  if(!cloud||!cloud.id)return;
+  clearTimeout(pushT);pushT=setTimeout(()=>cloudPush(),4000);
+  cloudStatus();
+}
+function cloudFlush(){if(pushT||cloudPending())cloudPush(true);}
+async function cloudPush(keep){
+  clearTimeout(pushT);pushT=null;
+  if(!cloud||!cloud.id)return;
+  if(pushing){pushAgain=true;return;}
+  pushing=true;
+  const at=state.savedAt||0;
+  const body=JSON.stringify({files:{[GFILE]:{content:JSON.stringify(state)}}});
+  try{
+    await gh("/"+cloud.id,{method:"PATCH",body,keepalive:keep&&body.length<60000});
+    cloud.at=Math.max(cloud.at||0,at);cloud.t=Date.now();cloud.err=null;
+  }catch(e){cloud.err=e;}
+  pushing=false;cloudStore();cloudStatus();
+  if(pushAgain){pushAgain=false;cloudPush();}
+}
+function applyRemote(remote){
+  snapshot("Загрузка из облака");
+  state=remote;normalize();freshenLogs();writeLocal();
+  cloud.at=state.savedAt||0;cloud.t=Date.now();
+}
+/* при запуске и возвращении в приложение: забрать более свежую копию или дослать свою */
+async function cloudSync(){
+  if(!cloud||!cloud.id||syncing||saveT||pushT||pushing)return;
+  syncing=true;
+  try{
+    const remote=await cloudRead(cloud.id);
+    const rAt=remote&&remote.savedAt||0,lAt=state.savedAt||0;
+    if(remote&&rAt>lAt&&!saveT){applyRemote(remote);cloudStore();rerender();toast("Данные обновлены из облака");}
+    else if(!remote||lAt>rAt){syncing=false;return cloudPush();}
+    else{cloud.at=rAt;cloud.t=Date.now();}
+    cloud.err=null;
+  }catch(e){cloud.err=e;}
+  syncing=false;cloudStore();cloudStatus();
+}
+async function cloudConnect(){
+  const t=(prompt("Вставь токен GitHub (начинается с ghp_):")||"").trim();
+  if(!t)return;
+  cloud={token:t};
+  try{
+    const list=await gh("?per_page=100");
+    const g=list.find(x=>x.files&&x.files[GFILE]);
+    if(g){
+      cloud.id=g.id;
+      const remote=await cloudRead(g.id);
+      if(remote&&confirm("В облаке уже есть копия от "+(remote.savedAt?fmtTime(remote.savedAt):"?")+".\n\nОК - загрузить её на телефон.\nОтмена - оставить данные телефона и отправить их в облако (старая версия останется в истории gist)."))applyRemote(remote);
+      else{state.savedAt=Date.now();writeLocal();cloudStore();await cloudPush();}
+    }else{
+      state.savedAt=state.savedAt||Date.now();writeLocal();
+      const ng=await gh("",{method:"POST",body:JSON.stringify({description:"WEDX - резервная копия тренировок",public:false,files:{[GFILE]:{content:JSON.stringify(state)}}})});
+      cloud.id=ng.id;cloud.at=state.savedAt;cloud.t=Date.now();
+    }
+    cloud.err=null;cloudStore();rerender();toast("Облако подключено");
+  }catch(e){
+    cloud=null;cloudStore();
+    alert(e===401?"Токен не подошёл. Проверь, что скопирован целиком и у него стоит галочка gist.":"Не получилось подключиться ("+e+"). Проверь интернет и попробуй ещё раз.");
+  }
+}
+function cloudText(){
+  if(!cloud||!cloud.id)return "Облако не подключено - данные есть только в этом телефоне";
+  if(cloud.err===401)return "Облако: токен больше не работает - отключи и подключи заново";
+  if(cloud.err===404)return "Облако: gist не найден - отключи и подключи заново";
+  if(cloud.err)return "Облако: нет связи, отправлю позже"+(cloud.t?" (последняя копия "+fmtTime(cloud.t)+")":"");
+  if(pushT||pushing||cloudPending())return "Облако: сохраняю…";
+  return "Облако: всё сохранено"+(cloud.t?" · "+fmtTime(cloud.t):"");
+}
+function cloudStatus(){
+  const s=document.getElementById("cloudst");if(!s)return;
+  s.textContent=cloudText();
+  s.className="cloudst"+(!cloud||!cloud.id||cloud.err?" warn":"");
+}
+function cloudBox(){
+  const box=el("div","cloudbox");
+  const st=el("div","cloudst"+(!cloud||!cloud.id||cloud.err?" warn":""));st.id="cloudst";st.textContent=cloudText();
+  box.appendChild(st);
+  if(!cloud||!cloud.id){
+    box.appendChild(el("div","cloudhelp",
+      "Бесплатный бэкап в твой GitHub (секретный gist), сохраняется сам после каждого изменения.<br>"+
+      "1. Нажми «Создать токен», войди в GitHub. В <b>Expiration</b> выбери <b>No expiration</b>, галочка <b>gist</b> уже стоит - листай вниз и жми <b>Generate token</b>, скопируй его.<br>"+
+      "2. Вернись сюда и нажми «Вставить токен»."));
+    const row=el("div","row");
+    const a=el("a","btnlink","Создать токен");a.href=TOKEN_URL;a.target="_blank";a.rel="noopener";
+    const b=el("button",null,"Вставить токен");b.onclick=cloudConnect;
+    row.appendChild(a);row.appendChild(b);box.appendChild(row);
+  }else{
+    const row=el("div","row");
+    const p=el("button",null,"Сохранить сейчас");
+    p.onclick=async()=>{await cloudPush();toast(cloud&&cloud.err?"Не получилось, попробую позже":"Сохранено в облако");};
+    const a=el("a","btnlink","История копий");a.href="https://gist.github.com/"+cloud.id+"/revisions";a.target="_blank";a.rel="noopener";
+    const x=el("button",null,"Отключить");
+    x.onclick=()=>{if(!confirm("Отключить облако на этом телефоне? Копия в GitHub останется."))return;cloud=null;cloudStore();rerender();};
+    row.appendChild(p);row.appendChild(a);row.appendChild(x);box.appendChild(row);
+  }
+  return box;
+}
+
+/* ---------- файл копии ---------- */
+function backupName(){return "wedx-"+todayKey()+".json";}
+async function saveFile(){
+  const txt=JSON.stringify(state);
+  const file=new File([txt],backupName(),{type:"application/json"});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"WEDX копия"});return;}
+  }catch(e){if(e&&e.name==="AbortError")return;}
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=backupName();
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function restoreFrom(t){
+  try{const o=JSON.parse(t);if(!o||typeof o!=="object"||!o.hist)throw 0;snapshot("Восстановить");state=o;normalize();freshenLogs();saveNow();rerender();toast("Данные восстановлены");}
+  catch(e){alert("Не получилось прочитать копию. Проверь, что это файл или текст из «Копия данных».");}
+}
+function openFile(){
+  const i=document.createElement("input");i.type="file";i.accept=".json,application/json,text/plain";
+  i.onchange=()=>{const f=i.files&&i.files[0];if(!f)return;f.text().then(t=>{if(confirm("Заменить текущие данные копией из файла «"+f.name+"»?"))restoreFrom(t);});};
+  i.click();
+}
 function slot(day,i,j){
   const k=day+"|"+i;
   if(!state.log[k])state.log[k]=[];
@@ -712,24 +872,25 @@ function renderDay(){
     clearDay(cur);save();renderDay();toast("Форма очищена, история цела");
   };
   foot.appendChild(btn);
+  foot.appendChild(cloudBox());
   const row=el("div","row");
-  const exp=el("button",null,"Копия данных");
-  exp.onclick=()=>{
+  const exp=el("button",null,"Копия в файл");exp.onclick=saveFile;
+  const imp=el("button",null,"Из файла");imp.onclick=openFile;
+  row.appendChild(exp);row.appendChild(imp);
+  foot.appendChild(row);
+  const row2=el("div","row");
+  const ct=el("button",null,"Копия текстом");
+  ct.onclick=()=>{
     const txt=JSON.stringify(state);
     navigator.clipboard?.writeText(txt).then(
       ()=>alert("Данные скопированы в буфер. Сохрани в заметках - это резервная копия."),
       ()=>prompt("Скопируй вручную:",txt)
     );
   };
-  const imp=el("button",null,"Восстановить");
-  imp.onclick=()=>{
-    const t=prompt("Вставь резервную копию:");
-    if(!t)return;
-    try{const o=JSON.parse(t);if(!o||typeof o!=="object")throw 0;snapshot("Восстановить");state=o;normalize();freshenLogs();saveNow();renderDay();toast("Данные восстановлены");}
-    catch(e){alert("Не получилось прочитать. Проверь, что скопирован весь текст.");}
-  };
-  row.appendChild(exp);row.appendChild(imp);
-  foot.appendChild(row);
+  const pt=el("button",null,"Вставить текст");
+  pt.onclick=()=>{const t=prompt("Вставь резервную копию:");if(t)restoreFrom(t);};
+  row2.appendChild(ct);row2.appendChild(pt);
+  foot.appendChild(row2);
   const ub=undoButton();if(ub)foot.appendChild(ub);
   if(!storageOK){
     const w=el("div",null,"Браузер не сохраняет данные. Скорее всего включён приватный режим - открой страницу в обычной вкладке.");
@@ -1370,6 +1531,7 @@ document.addEventListener("visibilitychange",()=>{
   const before=JSON.stringify(state.logDate);
   freshenLogs();
   if(JSON.stringify(state.logDate)!==before){save();if(view==="day")renderDay();}
+  cloudSync();
 });
 /* без зума: пинч и двойной тап */
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
@@ -1385,12 +1547,15 @@ document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
 
 (function(){
   load();
+  cloudLoad();
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
   renderDays();
   const h=location.hash.replace("#","");
   if(h.startsWith("prog")){
     const d=h.split("-")[1];if(d&&PROGRAM[d])pview=d;
     progBtn.onclick();
   }else renderDay();
+  cloudSync();
 })();
 </script>
 </body>
