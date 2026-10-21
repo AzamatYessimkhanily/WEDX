@@ -698,58 +698,89 @@ function placeTip(host,t,xPx,html){
 }
 function svgEl(n,attrs){const x=document.createElementNS("http://www.w3.org/2000/svg",n);for(const k in attrs)x.setAttribute(k,attrs[k]);return x;}
 
-/* Линия по сессиям: pts=[{x:'2026-09-09', y:100, sub:'html', pr:false}] */
+/* Линия по замерам: каждый замер сохраняет место, история прокручивается. */
 function lineChart(host,pts,opts){
-  opts=opts||{};host.innerHTML="";
-  if(pts.length<2){host.appendChild(el("div","pempty","Нужно минимум две тренировки для графика"));return;}
-  const W=340,H=150,PL=36,PR=14,PT=18,PB=22;
-  const ys=pts.map(p=>p.y);
-  const nt=niceTicks(Math.min(...ys),Math.max(...ys),4);
+  opts=opts||{};host.innerHTML="";host.classList.add("line-chart");
+  if(pts.length<2){host.appendChild(el("div","pempty","Нужно минимум два замера для графика"));return;}
+  const W=Math.max(240,24+(pts.length-1)*48),H=200,PL=12,PR=12,PT=16,PB=30;
+  const ys=pts.map(p=>p.y),nt=niceTicks(Math.min(...ys),Math.max(...ys),4);
   const sx=i=>PL+i*((W-PL-PR)/(pts.length-1));
   const sy=v=>PT+(H-PT-PB)*(1-(v-nt.lo)/((nt.hi-nt.lo)||1));
-  const svg=svgEl("svg",{viewBox:"0 0 "+W+" "+H,role:"img"});
+  const detail=el("div","chart-detail");
+  detail.setAttribute("aria-live","polite");detail.setAttribute("aria-atomic","true");
+  const value=el("div","chart-value"),date=el("div","chart-date"),extra=el("div","chart-extra");
+  detail.append(el("div","chart-caption","Выбранный замер"),value,date,extra);host.appendChild(detail);
+  const frame=el("div","chart-frame"),scroll=el("div","chart-scroll");
+  scroll.tabIndex=0;scroll.setAttribute("role","region");scroll.setAttribute("aria-label","История замеров. Стрелки влево и вправо выбирают замер");
+  const scale=svgEl("svg",{viewBox:"0 0 42 "+H,class:"chart-scale","aria-hidden":"true"});
+  const svg=svgEl("svg",{viewBox:"0 0 "+W+" "+H,preserveAspectRatio:"none",role:"img","aria-label":"График по датам замеров"});
+  svg.style.minWidth=W+"px";
   nt.ticks.forEach(v=>{
-    svg.appendChild(svgEl("line",{x1:PL,x2:W-PR,y1:sy(v),y2:sy(v),class:"grid"}));
-    const tx=svgEl("text",{x:PL-6,y:sy(v)+3.5,"text-anchor":"end",class:"ax"});tx.textContent=fmtK(v);svg.appendChild(tx);
+    svg.appendChild(svgEl("line",{x1:0,x2:W,y1:sy(v),y2:sy(v),class:"grid"}));
+    const tx=svgEl("text",{x:36,y:sy(v)+4,"text-anchor":"end",class:"ax"});
+    tx.textContent=Math.abs(v)>=10000?fmtK(v):v.toLocaleString("ru-RU",{maximumFractionDigits:3});scale.appendChild(tx);
   });
-  const step=Math.max(1,Math.ceil(pts.length/4));
-  pts.forEach((p,i)=>{
-    if(i%step===0||i===pts.length-1){
-      const tx=svgEl("text",{x:sx(i),y:H-6,"text-anchor":i===0?"start":i===pts.length-1?"end":"middle",class:"ax"});
-      tx.textContent=shortDate(p.x);svg.appendChild(tx);
-    }
+  // Leave enough room for both the neighbouring date and the final date label.
+  const labels=[0];
+  for(let i=1;i<pts.length-1;i++){
+    if(sx(i)-sx(labels[labels.length-1])>=64&&sx(pts.length-1)-sx(i)>=64)labels.push(i);
+  }
+  labels.push(pts.length-1);
+  labels.forEach(i=>{
+    const tx=svgEl("text",{x:sx(i),y:H-8,"text-anchor":i===0?"start":i===pts.length-1?"end":"middle",class:"ax chart-x-label"});
+    tx.textContent=shortDate(pts[i].x);svg.appendChild(tx);
   });
   const line=pts.map((p,i)=>(i?"L":"M")+sx(i).toFixed(1)+","+sy(p.y).toFixed(1)).join(" ");
   const base=sy(nt.lo);
   svg.appendChild(svgEl("path",{d:line+" L"+sx(pts.length-1).toFixed(1)+","+base+" L"+sx(0).toFixed(1)+","+base+" Z",class:"ar"}));
   svg.appendChild(svgEl("path",{d:line,class:"ln"}));
   const cross=svgEl("line",{x1:0,x2:0,y1:PT,y2:H-PB,class:"cross"});svg.appendChild(cross);
-  pts.forEach((p,i)=>svg.appendChild(svgEl("circle",{cx:sx(i),cy:sy(p.y),r:4,class:"dot"+(p.pr?" pr":"")})));
-  const lastP=pts[pts.length-1];
-  const endl=svgEl("text",{x:sx(pts.length-1),y:sy(lastP.y)-9,"text-anchor":"end",class:"endl"});
-  endl.textContent=(opts.fmt||trim)(lastP.y)+(opts.unit?" "+opts.unit:"");svg.appendChild(endl);
-  const hit=svgEl("rect",{x:PL-10,y:0,width:W-PL-PR+20,height:H,class:"hit"});svg.appendChild(hit);
-  host.appendChild(svg);
-  const tip=tipFor(host);
+  const dots=pts.map((p,i)=>{
+    const dot=svgEl("circle",{cx:sx(i),cy:sy(p.y),r:4,class:"dot"+(p.pr?" pr":"")});svg.appendChild(dot);return dot;
+  });
+  const hit=svgEl("rect",{x:0,y:0,width:W,height:H,class:"hit"});svg.appendChild(hit);
+  scroll.appendChild(svg);frame.append(scale,scroll);host.appendChild(frame);
+  const nav=el("div","chart-nav"),prev=el("button",null,"←"),next=el("button",null,"→"),latest=el("button","chart-latest","Последний"),position=el("span","chart-position");
+  prev.setAttribute("aria-label","Предыдущий замер");next.setAttribute("aria-label","Следующий замер");latest.setAttribute("aria-label","К последнему замеру");
+  [prev,next,latest].forEach(b=>b.type="button");nav.append(prev,position,next,latest);host.appendChild(nav);
+  host.appendChild(el("div","chart-hint",pts.length>6?"Листай историю в стороны · нажми на замер":"Нажми на замер или используй стрелки"));
   let sel=-1;
-  const show=i=>{
-    if(i===sel)return;sel=i;
-    const p=pts[i],xv=sx(i);
-    cross.setAttribute("x1",xv);cross.setAttribute("x2",xv);cross.style.opacity=1;
-    svg.querySelectorAll(".dot").forEach((d,k)=>d.setAttribute("r",k===i?5.5:4));
-    const rect=svg.getBoundingClientRect();
-    placeTip(host,tip,xv*rect.width/W,'<b>'+(opts.fmt||trim)(p.y)+(opts.unit?" "+opts.unit:"")+'</b>'+shortDate(p.x)+(p.pr?' · <span class="up">рекорд</span>':'')+(p.sub?'<span class="ts">'+p.sub+'</span>':''));
+  function reveal(i,behavior){
+    const rect=svg.getBoundingClientRect(),x=sx(i)*rect.width/W;
+    scroll.scrollTo({left:Math.max(0,x-scroll.clientWidth/2),behavior:behavior||"auto"});
+  }
+  function show(i,move){
+    i=Math.max(0,Math.min(pts.length-1,i));
+    if(sel>=0)dots[sel].setAttribute("r",4);
+    sel=i;const p=pts[i],x=sx(i);
+    cross.setAttribute("x1",x);cross.setAttribute("x2",x);cross.style.opacity=1;dots[i].setAttribute("r",6);
+    value.textContent=(opts.fmt||trim)(p.y)+(opts.unit?" "+opts.unit:"");
+    date.textContent=new Intl.DateTimeFormat("ru-RU",{day:"numeric",month:"long",year:"numeric"}).format(parseD(p.x))+(p.pr?" · рекорд":"");
+    extra.textContent=p.sub||"";extra.hidden=!p.sub;
+    position.textContent=(i+1)+" / "+pts.length;
+    prev.disabled=i===0;next.disabled=i===pts.length-1;
+    if(move)reveal(i,window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth");
+  }
+  const chooseAt=ev=>{
+    const rect=svg.getBoundingClientRect(),x=(ev.clientX-rect.left)*W/rect.width;
+    show(Math.round((x-PL)/(W-PL-PR)*(pts.length-1)),false);
   };
-  const onMove=ev=>{
-    const rect=svg.getBoundingClientRect();
-    const x=(ev.clientX-rect.left)*W/rect.width;
-    let best=0,bd=1e9;
-    pts.forEach((p,i)=>{const d=Math.abs(sx(i)-x);if(d<bd){bd=d;best=i;}});
-    show(best);
-  };
-  hit.addEventListener("pointerdown",ev=>{onMove(ev);});
-  hit.addEventListener("pointermove",ev=>{if(ev.pointerType==="mouse"||ev.buttons)onMove(ev);});
-  show(pts.length-1);
+  let down=null;
+  hit.addEventListener("pointerdown",ev=>{down={x:ev.clientX,y:ev.clientY};});
+  hit.addEventListener("pointercancel",()=>{down=null;});
+  hit.addEventListener("pointerup",ev=>{
+    if(down&&Math.hypot(ev.clientX-down.x,ev.clientY-down.y)<10)chooseAt(ev);
+    down=null;
+  });
+  hit.addEventListener("pointermove",ev=>{if(ev.pointerType==="mouse"&&!ev.buttons)chooseAt(ev);});
+  prev.onclick=()=>show(sel-1,true);next.onclick=()=>show(sel+1,true);latest.onclick=()=>show(pts.length-1,true);
+  scroll.addEventListener("keydown",ev=>{
+    const i={ArrowLeft:sel-1,ArrowRight:sel+1,Home:0,End:pts.length-1}[ev.key];
+    if(i===undefined)return;ev.preventDefault();show(i,true);
+  });
+  show(pts.length-1,false);
+  // The body-weight card may still be detached when this chart is constructed.
+  requestAnimationFrame(()=>{if(host.isConnected)reveal(sel);});
 }
 
 /* Столбики: bars=[{x:'label', y:v, sub:'html', dim:bool}] */
