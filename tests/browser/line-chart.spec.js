@@ -31,10 +31,13 @@ test('dense weight history stays readable and browsable on a narrow phone', asyn
   const gestureBounds = await scroll.boundingBox();
   const priorScroll = await scroll.evaluate(el => el.scrollLeft);
   const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Input.synthesizeScrollGesture', {
-    x: gestureBounds.x + 40, y: gestureBounds.y + 80,
-    xDistance: 120, yDistance: 0, gestureSourceType: 'touch', speed: 350,
-  });
+  const touch = x => [{ x, y: gestureBounds.y + 80 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touch(gestureBounds.x + 40) });
+  for (let step = 1; step <= 6; step++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: touch(gestureBounds.x + 40 + step * 20) });
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await expect.poll(() => scroll.evaluate(el => el.scrollLeft)).toBeLessThan(priorScroll - 20);
   await expect(chart.locator('.chart-position')).toHaveText('240 / 240');
   await cdp.detach();
