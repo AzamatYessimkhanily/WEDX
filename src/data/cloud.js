@@ -5,11 +5,13 @@ import { integrationsPanel } from '../features/integrations/panel.js';
 
 const labels = {
   local: 'Сохранено в этом устройстве',
+  restoring: 'Подключение к твоим данным…',
+  unlinked: 'Сохранено в этом устройстве · облако ещё не подключено',
   setup: 'Сохранено в этом устройстве · облако ещё не настроено',
   pending: 'Сохранено в устройстве · ожидает отправки',
   syncing: 'Синхронизация…', saved: 'Сохранено в облаке и в устройстве',
   offline: 'Нет связи с облаком · изменения сохранены в устройстве',
-  expired: 'Войди снова для синхронизации · данные сохранены в устройстве',
+  expired: 'Нужно обновить подключение · данные сохранены в устройстве',
   conflict: 'На другом устройстве есть изменения. Выбери копию для продолжения.',
 };
 function node(tag, value) { const n = document.createElement(tag); if (value) n.textContent = value; return n; }
@@ -20,7 +22,9 @@ function download(state, name) {
 }
 
 export function createCloud({ getState, applyState, onChange, toast }) {
-  let user = null, engine = null, timer = null, currentStatus = backendConfigured ? 'local' : 'setup';
+  let user = null, engine = null, timer = null, initialized = false;
+  let connectionToken = null, connectionMessage = '', connecting = false;
+  let currentStatus = backendConfigured ? 'restoring' : 'setup';
   const setStatus = value => { currentStatus = value; onChange(); };
   const readRemote = async () => {
     const { data, error } = await supabase.from('workout_state').select('snapshot,revision').maybeSingle();
@@ -28,10 +32,11 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     return data;
   };
   function attach(next) {
-    if (next?.id === user?.id) return;
+    if (initialized && next?.id === user?.id) return;
+    initialized = true;
     engine?.stop(); clearTimeout(timer); engine = null;
     user = next;
-    if (!user) { setStatus('local'); repaint(); return; }
+    if (!user) { setStatus('unlinked'); repaint(); return; }
     const owner = localStorage.getItem(`${KEY}-owner`);
     if (owner && owner !== user.id) {
       localStorage.setItem(`${KEY}-account-${owner}`, JSON.stringify(getState()));
@@ -90,43 +95,60 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     if (currentStatus !== 'conflict') setStatus('pending');
     clearTimeout(timer); timer = setTimeout(() => engine?.sync(), 1200);
   }
+  function readDeviceLink() {
+    const hash = new URLSearchParams(location.hash.slice(1));
+    if (!hash.has('connect')) return;
+    const token = hash.get('connect');
+    // Keep the one-use credential only in memory and out of navigation history.
+    history.replaceState(history.state, '', location.pathname + location.search);
+    connectionMessage = ''; connectionToken = null;
+    if (/^[a-zA-Z0-9_-]{20,256}$/.test(token)) connectionToken = token;
+    else connectionMessage = 'Личная ссылка недействительна. Нужна новая ссылка подключения.';
+    repaint();
+  }
+  function deviceConnection() {
+    const section = node('div'); section.dataset.deviceConnection = '';
+    section.hidden = Boolean(user) && !connectionToken && !connectionMessage && currentStatus !== 'expired';
+    if (connectionToken) {
+      section.append(node('p', 'Подключи это устройство к своей истории. Дальше WEDX будет открываться автоматически.'));
+      const connect = action('Подключить это устройство', async () => {
+        if (connecting) return;
+        connecting = true; connectionMessage = ''; repaint();
+        try {
+          const { data, error } = await supabase.auth.verifyOtp({ token_hash: connectionToken, type: 'magiclink' });
+          if (error || !data.session) {
+            if (error?.name === 'AuthRetryableFetchError') {
+              connectionMessage = 'Нет связи. Проверь интернет и повтори подключение.';
+            } else {
+              connectionToken = null;
+              connectionMessage = 'Ссылка уже использована или срок её действия закончился. Нужна новая личная ссылка.';
+            }
+          } else {
+            connectionToken = null;
+            attach(data.user);
+          }
+        } catch { connectionMessage = 'Нет связи. Проверь интернет и повтори подключение.'; }
+        finally { connecting = false; repaint(); }
+      });
+      connect.disabled = connecting; section.append(connect);
+    } else {
+      const help = node('details'); help.append(node('summary', 'Подключение устройства'));
+      help.append(node('p', 'Открой личную ссылку WEDX на этом устройстве и нажми «Подключить это устройство». Подключение сохранится автоматически.'));
+      section.append(help);
+    }
+    if (connectionMessage) {
+      const message = node('p', connectionMessage); message.setAttribute('role', 'status'); section.append(message);
+    }
+    return section;
+  }
   function render() {
     const box = node('div'); box.className = 'cloudbox'; box.dataset.cloudBox = '';
     const status = node('p', labels[currentStatus]); status.dataset.syncStatus = ''; status.setAttribute('role', 'status');
     box.append(node('h3', 'Данные и подключения'), status);
-    if (!backendConfigured) box.append(node('p', 'Тренировки работают локально. После подключения проекта Supabase здесь появится вход и синхронизация.'));
-    else if (!user) {
-      const form = node('form'); form.className = 'account-form';
-      const email = node('input'); email.type = 'email'; email.autocomplete = 'email'; email.placeholder = 'Email'; email.required = true; email.setAttribute('aria-label', 'Email');
-      const password = node('input'); password.type = 'password'; password.autocomplete = 'current-password'; password.placeholder = 'Пароль'; password.minLength = 8; password.required = true; password.setAttribute('aria-label', 'Пароль');
-      const feedback = node('p'); feedback.setAttribute('role', 'status');
-      const login = node('button', 'Войти'); login.type = 'submit';
-      const signup = action('Создать аккаунт', async () => {
-        if (!form.reportValidity()) return;
-        signup.disabled = true;
-        try {
-          const { error } = await supabase.auth.signUp({ email: email.value, password: password.value, options: { emailRedirectTo: location.origin + import.meta.env.BASE_URL } });
-          feedback.textContent = error ? 'Не удалось создать аккаунт. Проверь email и пароль или попробуй позже.' : 'Проверь почту: подтверди адрес, затем войди.';
-        } catch { feedback.textContent = 'Нет связи. Попробуй позже.'; }
-        finally { signup.disabled = false; }
-      });
-      form.onsubmit = async event => {
-        event.preventDefault(); login.disabled = true;
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
-          if (error) feedback.textContent = 'Не удалось войти. Проверь пароль и подтверждение email.';
-          else attach(data.user);
-        } catch { feedback.textContent = 'Нет связи. Попробуй позже.'; }
-        finally { login.disabled = false; }
-      };
-      form.append(email, password, login, signup, feedback); box.append(form);
-    } else {
-      box.append(node('p', user.email));
+    if (!backendConfigured) box.append(node('p', 'Тренировки работают локально. Облачная синхронизация появится после настройки проекта.'));
+    else box.append(deviceConnection());
+    if (user) {
       box.append(action('Синхронизировать', () => engine.sync()));
-      box.append(action('Выйти из аккаунта', async () => {
-        if (currentStatus !== 'saved' && !confirm('Есть изменения, которые ещё не отправлены. Выйти? Они останутся в этом устройстве.')) return;
-        await supabase.auth.signOut({ scope: 'local' }); attach(null);
-      }));
       const conflict = node('div'); conflict.dataset.syncConflict = ''; conflict.hidden = currentStatus !== 'conflict';
       conflict.append(node('p', 'Перед заменой сохрани обе копии. Автоматически объединять разные правки пока нельзя.'));
       conflict.append(action('Скачать копию устройства', () => download(getState(), 'wedx-device.json')));
@@ -149,12 +171,20 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     updateStatus() {
       document.querySelectorAll('[data-sync-status]').forEach(n => { n.textContent = labels[currentStatus]; });
       document.querySelectorAll('[data-sync-conflict]').forEach(n => { n.hidden = currentStatus !== 'conflict'; });
+      document.querySelectorAll('[data-device-connection]').forEach(n => {
+        n.hidden = Boolean(user) && !connectionToken && !connectionMessage && currentStatus !== 'expired';
+      });
     },
     async start() {
       if (!supabase) return;
+      readDeviceLink();
+      window.addEventListener('hashchange', readDeviceLink);
       supabase.auth.onAuthStateChange((_event, session) => { setTimeout(() => attach(session?.user || null), 0); });
-      try { const { data } = await supabase.auth.getSession(); attach(data.session?.user || null); }
-      catch { setStatus('offline'); }
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        attach(data.session?.user || null);
+        if (error) setStatus(error.name === 'AuthRetryableFetchError' ? 'offline' : 'expired');
+      } catch { attach(null); setStatus('offline'); }
       window.addEventListener('online', () => engine?.sync());
       setInterval(() => { if (document.visibilityState === 'visible') engine?.sync(); }, 60_000);
     },

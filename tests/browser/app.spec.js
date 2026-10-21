@@ -58,21 +58,30 @@ test('the installed app reloads and records workouts offline', async ({ page, co
   await context.setOffline(false);
 });
 
-test('account login syncs workouts and switching accounts does not upload another owner’s history', async ({ page }) => {
+test('personal device link persists, refreshes automatically and keeps account histories separate', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  const states = new Map(); let owner = ownerA;
+  const states = new Map(); let owner = ownerA, verifications = 0, refreshes = 0;
+  const session = () => ({
+    access_token: 'mock-access-token', refresh_token: 'mock-refresh-token', token_type: 'bearer', expires_in: 3600,
+    user: { id: owner, aud: 'authenticated', role: 'authenticated', email: owner === ownerA ? 'a@example.com' : 'b@example.com', created_at: new Date().toISOString(), app_metadata: {}, user_metadata: {} },
+  });
   await page.route('http://127.0.0.1:54321/**', async route => {
-    const { pathname } = new URL(route.request().url());
+    const { pathname, searchParams } = new URL(route.request().url());
     const json = value => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
-    if (pathname === '/auth/v1/token') {
-      owner = route.request().postDataJSON().email === 'a@example.com' ? ownerA : ownerB;
-      const user = { id: owner, aud: 'authenticated', role: 'authenticated', email: owner === ownerA ? 'a@example.com' : 'b@example.com', created_at: new Date().toISOString(), app_metadata: {}, user_metadata: {} };
-      return json({ access_token: 'mock-access-token', refresh_token: 'mock-refresh-token', token_type: 'bearer', expires_in: 3600, user });
+    if (pathname === '/auth/v1/verify') {
+      const args = route.request().postDataJSON();
+      expect(args.type).toBe('magiclink'); verifications++;
+      owner = args.token_hash === 'a'.repeat(64) ? ownerA : ownerB;
+      return json(session());
     }
-    if (pathname === '/auth/v1/logout') return route.fulfill({ status: 204 });
+    if (pathname === '/auth/v1/token') {
+      expect(searchParams.get('grant_type')).toBe('refresh_token'); refreshes++;
+      return json(session());
+    }
     if (pathname === '/rest/v1/workout_state') return json(states.has(owner) ? [states.get(owner)] : []);
     if (pathname === '/rest/v1/rpc/save_workout_state') {
       const args = route.request().postDataJSON();
+      expect(args.p_user_id).toBe(owner);
       const revision = states.get(owner)?.revision || 0;
       if (revision !== args.p_expected_revision) return json({ status: 'conflict', revision });
       states.set(owner, { snapshot: args.p_snapshot, revision: revision + 1 });
@@ -80,22 +89,66 @@ test('account login syncs workouts and switching accounts does not upload anothe
     }
     return json([]);
   });
-  await page.addInitScript(state => localStorage.setItem('gym-log-v1', JSON.stringify(state)), workout);
-  await page.goto('/');
-  await page.getByRole('textbox', { name: 'Email', exact: true }).fill('a@example.com');
-  await page.getByLabel('Пароль', { exact: true }).fill('test-password-123');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.addInitScript(state => {
+    if (!localStorage.getItem('test-seeded')) {
+      localStorage.setItem('gym-log-v1', JSON.stringify(state)); localStorage.setItem('test-seeded', '1');
+    }
+  }, workout);
+  await page.goto('/#connect=' + 'a'.repeat(64));
+  await expect(page.getByRole('button', { name: 'Подключить это устройство', exact: true })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('');
+  expect(verifications).toBe(0); // Previewing the link must not consume it.
+  await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
   await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в облаке и в устройстве');
   expect(states.get(ownerA).snapshot.hist['mon|0']).toHaveLength(2);
-  await page.getByRole('button', { name: 'Выйти из аккаунта', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Email', exact: true }).fill('b@example.com');
-  await page.getByLabel('Пароль', { exact: true }).fill('test-password-123');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.reload();
   await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в облаке и в устройстве');
-  expect(states.get(ownerB).snapshot.hist).toEqual({});
+  expect(verifications).toBe(1);
+  await expect(page.locator('input[type=email], input[type=password]')).toHaveCount(0);
+  await expect(page.getByText('a@example.com', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Выйти из аккаунта', exact: true })).toHaveCount(0);
+  // Simulate an expired access JWT while retaining the device's refresh credential.
+  await page.evaluate(() => {
+    const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    const stored = JSON.parse(localStorage.getItem(key)); stored.expires_at = Math.floor(Date.now() / 1000) - 60;
+    localStorage.setItem(key, JSON.stringify(stored));
+  });
+  await page.reload();
+  await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в облаке и в устройстве');
+  expect(refreshes).toBeGreaterThan(0); expect(verifications).toBe(1);
+  await page.goto('/#connect=' + 'b'.repeat(64));
+  await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
+  await expect.poll(() => states.get(ownerB)?.snapshot.hist).toEqual({});
+  await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в облаке и в устройстве');
   expect(states.get(ownerA).snapshot.hist['mon|0']).toHaveLength(2);
   expect(errors).toEqual([]);
   await page.locator('summary').filter({ hasText: 'Подключения и питание' }).click();
   await expect(page.getByRole('heading', { name: 'Invictus', exact: true })).toBeVisible();
   await page.locator('[data-cloud-box]').screenshot({ path: 'test-results/connections-mobile.png' });
+});
+
+test('a public visit has no login form and never authenticates as the owner', async ({ page }) => {
+  const backendRequests = [];
+  await page.route('http://127.0.0.1:54321/**', route => {
+    backendRequests.push(route.request().url());
+    return route.fulfill({ status: 401, body: '{}' });
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в этом устройстве · облако ещё не подключено');
+  await expect(page.locator('input[type=email], input[type=password]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Создать аккаунт', exact: true })).toHaveCount(0);
+  expect(backendRequests).toEqual([]);
+});
+
+test('an expired device link leaves existing local history intact', async ({ page }) => {
+  await page.addInitScript(state => localStorage.setItem('gym-log-v1', JSON.stringify(state)), workout);
+  await page.route('http://127.0.0.1:54321/auth/v1/verify', route => route.fulfill({
+    status: 403, contentType: 'application/json', body: JSON.stringify({ code: 'otp_expired', message: 'Token has expired' }),
+  }));
+  await page.goto('/#connect=' + 'c'.repeat(64));
+  await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
+  await expect(page.getByText('Ссылка уже использована или срок её действия закончился. Нужна новая личная ссылка.')).toBeVisible();
+  const local = await page.evaluate(() => JSON.parse(localStorage.getItem('gym-log-v1')));
+  expect(local.hist).toEqual(workout.hist); expect(local.bw).toEqual(workout.bw);
+  await expect(page.getByRole('button', { name: 'Подключить это устройство', exact: true })).toHaveCount(0);
 });

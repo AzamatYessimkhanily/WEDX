@@ -384,9 +384,6 @@
   .cloudbox button{white-space:normal;margin:4px 4px 4px 0;}
   .cloudbox details{margin-top:14px;}
   .cloudbox summary{cursor:pointer;color:var(--text);font-size:16px;padding:10px 0;}
-  .account-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;}
-  .account-form input{grid-column:1 / -1;min-width:0;width:100%;padding:12px;background:var(--ink);border:1px solid var(--line);border-radius:8px;color:var(--text);font:inherit;}
-  .account-form p{grid-column:1 / -1;}
   .integrations-panel section{border-top:1px solid var(--line);padding:12px 0;}
   .integrations-panel h4{margin:4px 0;color:var(--text);}
   .integrations-panel textarea{width:100%;max-width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);border-radius:8px;font-size:13px;user-select:text;}
