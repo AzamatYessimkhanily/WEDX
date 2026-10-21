@@ -1,0 +1,5 @@
+project_id = "wedx"
+
+[functions.health-import]
+# This endpoint authenticates a narrowly scoped, revocable integration token itself.
+verify_jwt = false

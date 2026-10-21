@@ -1,0 +1,10 @@
+{
+  "name": "WEDX · Тренировки",
+  "short_name": "WEDX",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#132430",
+  "theme_color": "#132430"
+}
