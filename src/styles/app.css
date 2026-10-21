@@ -405,5 +405,13 @@
   .integrations-panel section{border-top:1px solid var(--line);padding:12px 0;}
   .integrations-panel h4{margin:4px 0;color:var(--text);}
   .integrations-panel textarea{width:100%;max-width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);border-radius:8px;font-size:13px;user-select:text;}
+  .health-setup{background:var(--ink);border:1px solid var(--line);border-radius:12px;padding:0 12px 12px;}
+  .health-setup ol{padding-left:22px;line-height:1.5;}
+  .health-setup li{margin:10px 0;}
+  .connection-action{display:inline-block;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--text);text-decoration:none;margin:4px 6px 4px 0;}
+  .connection-secret{border-left:3px solid var(--amber);padding-left:12px;margin:12px 0;}
+  .nutrition-day{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  .nutrition-day strong{grid-row:span 2;align-self:center;font-weight:600;}
+  .nutrition-day span{text-align:right;}
   [data-sync-conflict]{border:1px solid var(--amber);border-radius:8px;padding:12px;margin:10px 0;}
   button:disabled{opacity:.55;cursor:wait;}
