@@ -16,6 +16,9 @@ const labels = {
 };
 function node(tag, value) { const n = document.createElement(tag); if (value) n.textContent = value; return n; }
 function action(label, fn) { const b = node('button', label); b.type = 'button'; b.onclick = fn; return b; }
+const PENDING_LINK_KEY = `${KEY}-pending-device-link`;
+const DEVICE_TOKEN = /^[a-zA-Z0-9_-]{20,256}$/;
+const PENDING_LINK_AGE = 60 * 60 * 1000;
 function download(state, name) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(state)], { type: 'application/json' }));
   const link = node('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 5000);
@@ -95,45 +98,84 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     if (currentStatus !== 'conflict') setStatus('pending');
     clearTimeout(timer); timer = setTimeout(() => engine?.sync(), 1200);
   }
+  function clearConnectionToken() {
+    connectionToken = null;
+    try { sessionStorage.removeItem(PENDING_LINK_KEY); } catch {}
+  }
+  function rememberConnectionToken(token) {
+    connectionToken = token;
+    // Preserve an unconsumed link across refreshes in this tab, never in the URL or permanent storage.
+    try { sessionStorage.setItem(PENDING_LINK_KEY, JSON.stringify({ token, createdAt: Date.now() })); } catch {}
+  }
+  function restoreConnectionToken() {
+    try {
+      const pending = JSON.parse(sessionStorage.getItem(PENDING_LINK_KEY));
+      const age = Date.now() - pending?.createdAt;
+      if (typeof pending?.token === 'string' && DEVICE_TOKEN.test(pending.token) && age >= 0 && age < PENDING_LINK_AGE) connectionToken = pending.token;
+      else clearConnectionToken();
+    } catch { clearConnectionToken(); }
+  }
   function readDeviceLink() {
     const hash = new URLSearchParams(location.hash.slice(1));
     if (!hash.has('connect')) return;
     const token = hash.get('connect');
-    // Keep the one-use credential only in memory and out of navigation history.
+    // Strip the one-use credential from navigation history as soon as it is received.
     history.replaceState(history.state, '', location.pathname + location.search);
-    connectionMessage = ''; connectionToken = null;
-    if (/^[a-zA-Z0-9_-]{20,256}$/.test(token)) connectionToken = token;
+    connectionMessage = ''; clearConnectionToken();
+    if (DEVICE_TOKEN.test(token)) rememberConnectionToken(token);
     else connectionMessage = 'Личная ссылка недействительна. Нужна новая ссылка подключения.';
     repaint();
+  }
+  async function connectDevice() {
+    if (connecting || !connectionToken) return;
+    connecting = true; connectionMessage = ''; repaint();
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ token_hash: connectionToken, type: 'magiclink' });
+      if (error || !data.session) {
+        if (error?.name === 'AuthRetryableFetchError') {
+          connectionMessage = 'Нет связи. Проверь интернет и повтори подключение.';
+        } else {
+          clearConnectionToken();
+          connectionMessage = 'Ссылка уже использована или срок её действия закончился. Нужна новая личная ссылка.';
+        }
+      } else {
+        clearConnectionToken();
+        attach(data.user);
+      }
+    } catch { connectionMessage = 'Нет связи. Проверь интернет и повтори подключение.'; }
+    finally { connecting = false; repaint(); }
   }
   function deviceConnection() {
     const section = node('div'); section.dataset.deviceConnection = '';
     section.hidden = Boolean(user) && !connectionToken && !connectionMessage && currentStatus !== 'expired';
     if (connectionToken) {
       section.append(node('p', 'Подключи это устройство к своей истории. Дальше WEDX будет открываться автоматически.'));
-      const connect = action('Подключить это устройство', async () => {
-        if (connecting) return;
-        connecting = true; connectionMessage = ''; repaint();
-        try {
-          const { data, error } = await supabase.auth.verifyOtp({ token_hash: connectionToken, type: 'magiclink' });
-          if (error || !data.session) {
-            if (error?.name === 'AuthRetryableFetchError') {
-              connectionMessage = 'Нет связи. Проверь интернет и повтори подключение.';
-            } else {
-              connectionToken = null;
-              connectionMessage = 'Ссылка уже использована или срок её действия закончился. Нужна новая личная ссылка.';
-            }
-          } else {
-            connectionToken = null;
-            attach(data.user);
-          }
-        } catch { connectionMessage = 'Нет связи. Проверь интернет и повтори подключение.'; }
-        finally { connecting = false; repaint(); }
-      });
+      const connect = action(connecting ? 'Подключение…' : 'Подключить это устройство', connectDevice);
       connect.disabled = connecting; section.append(connect);
     } else {
-      const help = node('details'); help.append(node('summary', 'Подключение устройства'));
-      help.append(node('p', 'Открой личную ссылку WEDX на этом устройстве и нажми «Подключить это устройство». Подключение сохранится автоматически.'));
+      const help = node('details'); help.open = true; help.append(node('summary', 'Подключение устройства'));
+      help.append(node('p', 'Скопируй личную ссылку из чата и вставь её сюда. Так подключится именно это приложение, даже если ты открываешь его через иконку на iPhone.'));
+      const form = node('form'); form.className = 'device-link-form';
+      const input = node('input'); input.type = 'url'; input.required = true;
+      input.autocomplete = 'off'; input.autocapitalize = 'none'; input.spellcheck = false;
+      input.placeholder = 'Вставь личную ссылку из чата'; input.setAttribute('aria-label', 'Личная ссылка WEDX');
+      input.oninput = () => input.setCustomValidity('');
+      const connect = node('button', 'Подключить это устройство'); connect.type = 'submit';
+      form.append(input, connect);
+      form.onsubmit = event => {
+        event.preventDefault();
+        let token = null;
+        try {
+          const url = new URL(input.value.trim());
+          if (['https:', 'http:'].includes(url.protocol)) token = new URLSearchParams(url.hash.slice(1)).get('connect');
+        } catch {}
+        if (typeof token !== 'string' || !DEVICE_TOKEN.test(token)) {
+          input.setCustomValidity('Вставь полную личную ссылку WEDX из чата. Обычный адрес приложения не подойдёт.');
+          input.reportValidity(); return;
+        }
+        rememberConnectionToken(token); input.value = ''; connectDevice();
+      };
+      help.append(form, node('p', 'Логин и пароль не нужны. Подключение сохранится на этом устройстве.'));
       section.append(help);
     }
     if (connectionMessage) {
@@ -181,6 +223,7 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     },
     async start() {
       if (!supabase) return;
+      restoreConnectionToken();
       readDeviceLink();
       window.addEventListener('hashchange', readDeviceLink);
       supabase.auth.onAuthStateChange((_event, session) => { setTimeout(() => attach(session?.user || null), 0); });

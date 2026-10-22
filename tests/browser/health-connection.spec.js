@@ -56,7 +56,13 @@ test('iPhone setup installs a public template, scopes the secret to nutrition, a
     ] : []);
     return json([]);
   });
-  await page.goto('/?view=health#connect=' + 'a'.repeat(64));
+  // A home-screen app receives the link by pasting it inside its own storage context.
+  await page.goto('/?view=health');
+  const personalLink = page.getByRole('textbox', { name: 'Личная ссылка WEDX', exact: true });
+  await personalLink.fill('https://azamatyessimkhanily.github.io/WEDX/');
+  await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
+  expect(await personalLink.evaluate(input => input.validity.customError)).toBe(true);
+  await personalLink.fill('https://azamatyessimkhanily.github.io/WEDX/?view=health#connect=' + 'a'.repeat(64));
   await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Apple Health', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page).toHaveURL(/\?view=health$/);

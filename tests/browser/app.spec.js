@@ -99,8 +99,12 @@ test('personal device link persists, refreshes automatically and keeps account h
   await expect(page.getByRole('button', { name: 'Подключить это устройство', exact: true })).toBeVisible();
   expect(new URL(page.url()).hash).toBe('');
   expect(verifications).toBe(0); // Previewing the link must not consume it.
+  await page.reload(); // Refreshing the stripped URL must not lose the pending connection.
+  await expect(page.getByRole('button', { name: 'Подключить это устройство', exact: true })).toBeVisible();
+  expect(verifications).toBe(0);
   await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
   await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в облаке и в устройстве');
+  expect(await page.evaluate(() => sessionStorage.getItem('gym-log-v1-pending-device-link'))).toBeNull();
   expect(states.get(ownerA).snapshot.hist['mon|0']).toHaveLength(2);
   await page.reload();
   await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в облаке и в устройстве');
@@ -129,6 +133,9 @@ test('personal device link persists, refreshes automatically and keeps account h
 });
 
 test('a public visit has no login form and never authenticates as the owner', async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem('gym-log-v1-pending-device-link', JSON.stringify({
+    token: 'd'.repeat(64), createdAt: Date.now() - 2 * 60 * 60 * 1000,
+  })));
   const backendRequests = [];
   await page.route('http://127.0.0.1:54321/**', route => {
     backendRequests.push(route.request().url());
@@ -138,6 +145,8 @@ test('a public visit has no login form and never authenticates as the owner', as
   await expect(page.locator('[data-sync-status]')).toHaveText('Сохранено в этом устройстве · облако ещё не подключено');
   await expect(page.locator('input[type=email], input[type=password]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Создать аккаунт', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Личная ссылка WEDX', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem('gym-log-v1-pending-device-link'))).toBeNull();
   expect(backendRequests).toEqual([]);
 });
 
@@ -151,5 +160,6 @@ test('an expired device link leaves existing local history intact', async ({ pag
   await expect(page.getByText('Ссылка уже использована или срок её действия закончился. Нужна новая личная ссылка.')).toBeVisible();
   const local = await page.evaluate(() => JSON.parse(localStorage.getItem('gym-log-v1')));
   expect(local.hist).toEqual(workout.hist); expect(local.bw).toEqual(workout.bw);
-  await expect(page.getByRole('button', { name: 'Подключить это устройство', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Личная ссылка WEDX', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem('gym-log-v1-pending-device-link'))).toBeNull();
 });
