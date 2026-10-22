@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'WEDX — питание 3'
+NAME = 'WEDX — питание 4'
 ENDPOINT = 'https://lhwvpjaatsroijgozoro.supabase.co/functions/v1/health-import'
 
 
@@ -63,7 +63,7 @@ def build(token='', mock=False):
     def format_date(input, pattern='yyyy-MM-dd'):
         return add('format.date', 'Formatted Date', WFDate=text(input), WFDateFormatStyle='Custom', WFDateFormat=pattern, WFLocale='en_US_POSIX')
 
-    add('comment', WFCommentActionText='WEDX · Apple «Здоровье» → питание. Калории, белок, углеводы и жиры YAZIO, а также записи активной энергии за сегодня и предыдущие 7 дней. '
+    add('comment', WFCommentActionText='WEDX · Apple «Здоровье» → питание. Калории, белок, углеводы и жиры YAZIO за 8 дней. Активная энергия за сегодня и вчера; прежняя история сохраняется. '
         'Первый запуск — на разблокированном iPhone. Разреши чтение пяти показателей и отправку в свой WEDX. '
         'В базе сохраняются дневные итоги. Пустые дни не заменяют прежние значения. '
         'После первого запуска сверь один день с YAZIO. Команда ничего не записывает в «Здоровье».')
@@ -73,6 +73,9 @@ def build(token='', mock=False):
     start_raw = add('adjustdate', 'Adjusted Date', WFDate=text(now), WFAdjustOperation='Subtract',
                     WFDuration=state('WFQuantityFieldValue', {'Magnitude': '7', 'Unit': 'days'}))
     start = format_date(start_raw)
+    activity_start_raw = add('adjustdate', 'Adjusted Date', WFDate=text(now), WFAdjustOperation='Subtract',
+                            WFDuration=state('WFQuantityFieldValue', {'Magnitude': '1', 'Unit': 'days'}))
+    activity_start = format_date(activity_start_raw)
 
     fixtures = None
     if mock:
@@ -96,7 +99,7 @@ def build(token='', mock=False):
                     {'Bounded': True, 'Operator': 4, 'Property': 'Type', 'Removable': False,
                      'Values': {'Enumeration': state('WFStringSubstitutableState', label)}},
                     {'Bounded': True, 'Operator': 1001, 'Property': 'Start Date', 'Removable': True,
-                     'Values': {'Number': '8', 'Unit': 16}},
+                     'Values': {'Number': '2' if kind == 'activity' else '8', 'Unit': 16}},
                 ],
             })
             found = add('filter.health.quantity', 'Health Samples', WFContentItemFilter=filters,
@@ -139,7 +142,7 @@ def build(token='', mock=False):
     activity = samples('activity', 'Active Calories')
     payload = add('gettext', 'Text', WFTextActionText=text(
         '{"version":3,"source":"yazio:apple-health","startDate":"', start,
-        '","endDate":"', end, '","energySamples":[', energy, '],"proteinSamples":[', protein, '],"carbsSamples":[', carbs,
+        '","endDate":"', end, '","activityStartDate":"', activity_start, '","energySamples":[', energy, '],"proteinSamples":[', protein, '],"carbsSamples":[', carbs,
         '],"fatSamples":[', fat, '],"activitySamples":[', activity, ']}'))
     if not mock:
         # File bodies require a direct attachment; wrapping it in text() sends no body.

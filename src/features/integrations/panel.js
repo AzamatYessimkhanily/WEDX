@@ -31,17 +31,17 @@ export function integrationsPanel(user, { open = false } = {}) {
       const steps = document.createElement('ol');
       steps.append(text('li', 'В «Здоровье» проверь пищевую энергию, белок, углеводы, жиры и активную энергию: источником должен быть YAZIO.'));
       steps.append(text('li', 'Создай ключ ниже и скопируй его. Установи команду и вставь ключ при добавлении.'));
-      steps.append(text('li', 'Запусти «WEDX — питание 3» на разблокированном iPhone. Разреши чтение пяти показателей и отправку в WEDX.'));
+      steps.append(text('li', 'Запусти «WEDX — питание 4» на разблокированном iPhone. Разреши чтение пяти показателей и отправку в WEDX.'));
       steps.append(text('li', 'Вернись в WEDX: питание загрузится автоматически. Сверь один день с YAZIO. Сегодняшние значения меняются по мере заполнения дневника.'));
-      const install = link('Установить команду', 'https://www.icloud.com/shortcuts/ed1550c1cae3458e86b23444b7c28e38');
+      const install = link('Установить команду', 'https://www.icloud.com/shortcuts/b99072bde9754f2ab41d9349ea936fbe');
       install.target = '_blank'; install.rel = 'noopener noreferrer';
-      setup.append(steps, install, link('Запустить на iPhone', `shortcuts://run-shortcut?name=${encodeURIComponent('WEDX — питание 3')}`));
+      setup.append(steps, install, link('Запустить на iPhone', `shortcuts://run-shortcut?name=${encodeURIComponent('WEDX — питание 4')}`));
       setup.append(text('p', 'Установка откроет страницу iCloud. Нажми «Получить быструю команду», затем добавь её в «Команды». Если страница не открывается из WEDX, открой ссылку в Safari.'));
-      setup.append(text('p', 'Для углеводов, жиров и расхода установи «WEDX — питание 3» и выбери её в автоматизации вместо прежней команды. Ключ менять не нужно: его можно скопировать из первого действия «Текст» в старой команде через кнопку «…».'));
+      setup.append(text('p', 'Для углеводов, жиров и расхода установи «WEDX — питание 4» и выбери её в автоматизации вместо прежней команды. Ключ менять не нужно: его можно скопировать из первого действия «Текст» в старой команде через кнопку «…».'));
       const fallback = document.createElement('details');
       fallback.append(text('summary', 'Скачать команду файлом'));
-      const download = link('Скачать .shortcut', `${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — питание 3.shortcut')}`);
-      download.download = 'WEDX — питание 3.shortcut';
+      const download = link('Скачать .shortcut', `${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — питание 4.shortcut')}`);
+      download.download = 'WEDX — питание 4.shortcut';
       fallback.append(download, text('p', 'Открой скачанный файл в «Файлах». Если он не добавляется, используй «Установить команду» выше — установка через iCloud не требует скачивания файла.'));
       setup.append(fallback);
       const automation = document.createElement('details');
@@ -52,7 +52,7 @@ export function integrationsPanel(user, { open = false } = {}) {
       for (const step of [
         'Открой «Команды» → «Автоматизация» → «+» → «Приложение».',
         'Выбери YAZIO и событие «Закрывается».',
-        'Выбери «Немедленный запуск» → «Далее» → «WEDX — питание 3» и сохрани.',
+        'Выбери «Немедленный запуск» → «Далее» → «WEDX — питание 4» и сохрани.',
       ]) automationSteps.append(text('li', step));
       automation.append(automationSteps);
       automation.append(text('p', 'Если данные ещё не успели попасть из YAZIO в «Здоровье» или iPhone заблокирован, повтори запуск вручную. Команда заново проверяет сегодня и предыдущие 7 дней.'));

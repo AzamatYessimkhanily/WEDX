@@ -92,3 +92,17 @@ test('v3 handler retains new metrics and old v2 remains compatible', async () =>
     headers: { Authorization: 'Bearer wedx_' + 'a'.repeat(64), 'Content-Type': 'application/json' }, body: JSON.stringify(v3()) }));
   assert.equal(response.status, 200); assert.equal(days[0].carbsGrams, 125.75); assert.equal(days[0].caloriesBurned, 120.5);
 });
+
+test('a shorter activity window preserves older activity while still correcting older nutrition', () => {
+  const body = v3({ activityStartDate: '2026-10-21', activitySamples: [] });
+  body.energySamples.push(sample('2026-10-20', 600, 'kcal'));
+  body.proteinSamples.push(sample('2026-10-20', 40, 'g'));
+  const [older, current] = summarizeSamples(body).days;
+  assert.equal(older.caloriesKcal, 600);
+  assert.equal(Object.hasOwn(older, 'activityStatus'), false);
+  assert.equal(Object.hasOwn(older, 'caloriesBurned'), false);
+  assert.equal(current.activityStatus, 'no_data');
+  for (const activityStartDate of ['2026-02-30', '2026-10-13', '2026-10-22']) {
+    assert.throws(() => summarizeSamples(v3({ activityStartDate })));
+  }
+});

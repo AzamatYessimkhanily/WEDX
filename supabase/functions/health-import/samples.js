@@ -16,6 +16,10 @@ export function summarizeSamples(body) {
     || !date(body.startDate) || !date(body.endDate)) invalid('Неверный формат команды. Установи актуальную команду WEDX.');
   const span = (Date.parse(body.endDate) - Date.parse(body.startDate)) / 86400000;
   if (span < 0 || span > 30) invalid('За один раз можно передать до 31 календарного дня.');
+  const activityStart = body.activityStartDate ?? body.startDate;
+  if (body.version === 3 && (!date(activityStart) || activityStart < body.startDate || activityStart > body.endDate)) {
+    invalid('Неверный период активности. Установи актуальную команду WEDX.');
+  }
   const grouped = new Map();
   let count = 0;
   for (const kind of (body.version === 3 ? ['energy', 'protein', 'carbs', 'fat'] : ['energy', 'protein'])) {
@@ -51,7 +55,8 @@ export function summarizeSamples(body) {
           row[kind + 'Grams'] = round(day[kind]);
         }
       }
-      Object.assign(row, activity.get(day.date) || { activityStatus: 'no_data', caloriesBurned: null });
+      // A shorter activity window must not erase previously collected history.
+      if (day.date >= activityStart) Object.assign(row, activity.get(day.date) || { activityStatus: 'no_data', caloriesBurned: null });
     }
     days.push(row);
   }
