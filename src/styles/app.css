@@ -42,8 +42,10 @@
     border-bottom:1px solid var(--line);
     padding-top:env(safe-area-inset-top);
   }
-  .htop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 8px;}
+  .htop{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 8px;}
   .htop h1{font-size:19px;font-weight:700;margin:0;letter-spacing:.2px;white-space:nowrap;}
+  .header-actions{display:flex;gap:6px;margin-left:auto;}
+  .header-actions .progbtn{padding:8px 10px;min-height:40px;white-space:nowrap;}
   .progbtn{
     background:transparent;border:1px solid var(--line);color:var(--muted);
     font-family:inherit;font-size:14.5px;font-weight:600;padding:6px 13px;
@@ -247,6 +249,7 @@
   .restday{text-align:center;padding:46px 20px;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r);}
   .restday b{display:block;color:var(--text);font-size:19px;margin-bottom:6px;}
   .foot{padding:20px 0 8px;}
+  .health-page{padding-top:0;}
   .foot button{
     width:100%;padding:12px;border-radius:var(--r);border:1px solid var(--line);
     background:transparent;color:var(--muted);font-family:inherit;font-size:15.5px;cursor:pointer;

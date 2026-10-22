@@ -37,6 +37,7 @@ test('file import supports existing JSON backups without injecting personal seed
   await page.getByRole('button', { name: 'Прогресс', exact: true }).click();
   await expect(page.getByText('Данных пока нет', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Тренировка', exact: true }).click();
+  await page.locator('#days button').filter({ hasText: 'Пн' }).click();
   page.on('dialog', dialog => dialog.accept());
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Из файла', exact: true }).click();

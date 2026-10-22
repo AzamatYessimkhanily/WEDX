@@ -96,7 +96,7 @@ function undoButton(){
     if(!confirm("Вернуть данные, какими они были до «"+u.l+"»? Текущие данные заменятся."))return;
     state=u.s;normalize();freshenLogs();saveNow();
     try{localStorage.removeItem(UKEY);}catch(e){}
-    if(view==="day")renderDay();else renderProgress();
+    rerender();
     toast("Данные возвращены");
   };
   return b;
@@ -110,7 +110,7 @@ function saveNow(){
 }
 /* запись без отметки времени - для данных, пришедших из облака */
 function writeLocal(){try{localStore.write(state);}catch(e){storageOK=false;}}
-function rerender(){if(view==="day")renderDay();else renderProgress();}
+function rerender(){if(view==="health")renderHealth();else if(view==="day")renderDay();else renderProgress();}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){if(saveT)saveNow();cloudFlush();}});
 window.addEventListener("pagehide",()=>{if(saveT)saveNow();cloudFlush();});
 
@@ -383,6 +383,8 @@ function renderDay(){
   const p=PROGRAM[cur];
   if(!p){
     main.innerHTML='<div style="height:18px"></div><div class="restday"><b>День отдыха</b>Восстановление - это часть программы, а не пауза в ней.</div>'+rulesHTML();
+    const foot=el("div","foot");
+    foot.appendChild(cloudBox());main.appendChild(foot);
     return;
   }
   main.appendChild(el("div","daymeta",'<h2>'+esc(p.name)+' <span style="color:var(--muted);font-weight:400">· '+esc(p.note)+'</span></h2><span class="count" id="cnt"></span>'));
@@ -1184,16 +1186,30 @@ function rulesHTML(){
 /* ---------- init ---------- */
 let view="day";
 const progBtn=document.getElementById("tab-prog");
+const healthBtn=document.getElementById("tab-health");
 const daysBar=document.getElementById("days"),ptabs=document.getElementById("ptabs");
-progBtn.onclick=()=>{
-  view=(view==="day")?"prog":"day";
+function renderHealth(){
+  const content=el("div","foot health-page");
+  content.appendChild(cloudService.render({health:true}));
+  main.replaceChildren(content);
+}
+function showView(next){
+  view=next;
   progBtn.classList.toggle("on",view==="prog");
-  progBtn.textContent=(view==="prog")?"Тренировка":"Прогресс";
-  daysBar.style.display=(view==="prog")?"none":"flex";
+  progBtn.textContent=(view!=="day")?"Тренировка":"Прогресс";
+  healthBtn.classList.toggle("on",view==="health");
+  healthBtn.setAttribute("aria-pressed",view==="health");
+  daysBar.style.display=(view==="day")?"flex":"none";
   ptabs.style.display=(view==="prog")?"flex":"none";
-  if(view==="prog"){renderPTabs();renderProgress();}else renderDay();
+  const url=new URL(location.href);
+  if(view==="health")url.searchParams.set("view","health");else url.searchParams.delete("view");
+  history.replaceState(history.state,"",url);
+  if(view==="prog")renderPTabs();
+  rerender();
   window.scrollTo({top:0});
-};
+}
+progBtn.onclick=()=>showView(view==="day"?"prog":"day");
+healthBtn.onclick=()=>showView("health");
 /* вернулись в приложение на следующий день - форма должна быть чистой */
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState!=="visible")return;
@@ -1232,7 +1248,8 @@ function cloudBox(){return cloudService.render();}
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
   renderDays();
   const h=location.hash.replace("#","");
-  if(h.startsWith("prog")){
+  if(new URLSearchParams(location.search).get("view")==="health")showView("health");
+  else if(h.startsWith("prog")){
     const d=h.split("-")[1];if(d&&PROGRAM[d])pview=d;
     progBtn.onclick();
   }else renderDay();

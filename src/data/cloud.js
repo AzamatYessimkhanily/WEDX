@@ -60,7 +60,7 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     repaint(); engine.sync();
   }
   function repaint() {
-    document.querySelectorAll('[data-cloud-box]').forEach(box => box.replaceWith(render()));
+    document.querySelectorAll('[data-cloud-box]').forEach(box => box.replaceWith(render({ health: box.dataset.healthPage === 'true' })));
   }
   async function importGist() {
     try {
@@ -141,10 +141,13 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     }
     return section;
   }
-  function render() {
+  function render({ health = false } = {}) {
     const box = node('div'); box.className = 'cloudbox'; box.dataset.cloudBox = '';
+    box.dataset.healthPage = String(health);
     const status = node('p', labels[currentStatus]); status.dataset.syncStatus = ''; status.setAttribute('role', 'status');
-    box.append(node('h3', 'Данные и подключения'), status);
+    box.append(node('h3', health ? 'Apple Health' : 'Данные и подключения'));
+    if (health) box.append(node('p', 'YAZIO → «Здоровье» → WEDX. Для передачи калорий и белка используется команда на iPhone.'));
+    box.append(status);
     if (!backendConfigured) box.append(node('p', 'Тренировки работают локально. Облачная синхронизация появится после настройки проекта.'));
     else box.append(deviceConnection());
     if (user) {
@@ -159,8 +162,9 @@ export function createCloud({ getState, applyState, onChange, toast }) {
           try { await engine.resolve(choice); } catch { toast('Нет связи. Обе копии сохранены.'); }
         }));
       }
-      box.append(conflict, integrationsPanel(user));
+      box.append(conflict);
     }
+    box.append(integrationsPanel(user, { open: health }));
     const legacy = node('details'); legacy.append(node('summary', 'Перенос со старой версии'));
     legacy.append(node('p', 'При прежнем адресе история сохраняется автоматически. На новом адресе используй «Копия данных» → файл в старом приложении и восстанови его здесь.'));
     legacy.append(action('Загрузить прежнюю копию GitHub', importGist)); box.append(legacy);

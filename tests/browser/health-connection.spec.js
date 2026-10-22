@@ -2,6 +2,36 @@ import { test, expect } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { ownerA } from '../fixtures.js';
 
+test('Apple Health is reachable on a rest day before connecting the device', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-22T12:00:00+05:00'));
+  const requests = [];
+  await page.route('http://127.0.0.1:54321/**', route => {
+    requests.push(route.request().url());
+    return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+  await page.goto('/');
+  await page.locator('#days button').filter({ hasText: 'Чт' }).click();
+  await expect(page.getByText('День отдыха', { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.getByRole('button', { name: 'Apple Health', exact: true }).click();
+  await expect(page.getByText('Подключить Apple Health', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Сначала подключи этот iPhone/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Создать ключ для iPhone' })).toHaveCount(0);
+  expect(requests.filter(url => url.includes('/rest/'))).toHaveLength(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Тренировка', exact: true }).click();
+  await expect(page.getByText('День отдыха', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Apple Health', exact: true }).click();
+  await page.reload();
+  await expect(page.getByText(/Сначала подключи этот iPhone/)).toBeVisible();
+  await page.screenshot({ path: 'test-results/health-unlinked-mobile.png' });
+  await page.getByRole('button', { name: 'Тренировка', exact: true }).click();
+  await page.getByRole('button', { name: 'Прогресс', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Обзор', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Apple Health', exact: true }).click();
+  await expect(page.getByText(/Сначала подключи этот iPhone/)).toBeVisible();
+});
+
 test('iPhone setup installs a public template, scopes the secret to nutrition, and shows imported days', async ({ page, request }) => {
   const tokens = []; let showNutrition = false;
   await page.addInitScript(() => {
@@ -26,9 +56,10 @@ test('iPhone setup installs a public template, scopes the secret to nutrition, a
     ] : []);
     return json([]);
   });
-  await page.goto('/#connect=' + 'a'.repeat(64));
+  await page.goto('/?view=health#connect=' + 'a'.repeat(64));
   await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
-  await page.locator('summary').filter({ hasText: 'Подключения и питание' }).click();
+  await expect(page.getByRole('button', { name: 'Apple Health', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page).toHaveURL(/\?view=health$/);
   await expect(page.getByText(/Импортов пока нет/)).toBeVisible();
   const download = page.getByRole('link', { name: 'Установить команду', exact: true });
   const file = await request.get(await download.getAttribute('href'));

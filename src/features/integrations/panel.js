@@ -8,10 +8,17 @@ async function digest(value) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export function integrationsPanel(user) {
+export function integrationsPanel(user, { open = false } = {}) {
   const panel = document.createElement('details');
   panel.className = 'integrations-panel';
+  panel.open = open;
   panel.append(text('summary', 'Подключения и питание'));
+  if (!user) {
+    panel.append(text('h4', 'Подключить Apple Health'));
+    panel.append(text('p', 'Сначала подключи этот iPhone к своей истории WEDX по личной ссылке. Если ты уже открыл её, нажми «Подключить это устройство» выше.'));
+    panel.append(text('p', 'После подключения здесь появятся создание ключа и установка команды. Логин и пароль вводить не нужно.'));
+    return panel;
+  }
   const feedback = text('p', ''); feedback.setAttribute('role', 'status');
   for (const service of integrations) {
     const section = document.createElement('section');
