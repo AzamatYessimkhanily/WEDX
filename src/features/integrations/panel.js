@@ -1,5 +1,6 @@
 import { supabase, healthImportUrl } from '../../data/supabase.js';
 import { integrations } from './catalog.js';
+import { nutritionPanel } from './nutrition.js';
 
 function text(tag, value) { const node = document.createElement(tag); node.textContent = value; return node; }
 function button(label, fn) { const b = text('button', label); b.type = 'button'; b.onclick = fn; return b; }
@@ -31,7 +32,7 @@ export function integrationsPanel(user, { open = false } = {}) {
       steps.append(text('li', 'В «Здоровье» проверь пищевую энергию и белок: источником должен быть YAZIO.'));
       steps.append(text('li', 'Создай ключ ниже и скопируй его. Установи команду и вставь ключ при добавлении.'));
       steps.append(text('li', 'Запусти «WEDX — питание 2» на разблокированном iPhone. Разреши чтение двух показателей и отправку в WEDX.'));
-      steps.append(text('li', 'Нажми «Обновить питание» и сверь один день с YAZIO. Сегодняшние значения меняются по мере заполнения дневника.'));
+      steps.append(text('li', 'Вернись в WEDX: питание загрузится автоматически. Сверь один день с YAZIO. Сегодняшние значения меняются по мере заполнения дневника.'));
       const install = link('Установить команду', 'https://www.icloud.com/shortcuts/3a4edd21348f4fcb9c2baed216e9e1e3');
       install.target = '_blank'; install.rel = 'noopener noreferrer';
       setup.append(steps, install, link('Запустить на iPhone', `shortcuts://run-shortcut?name=${encodeURIComponent('WEDX — питание 2')}`));
@@ -44,8 +45,16 @@ export function integrationsPanel(user, { open = false } = {}) {
       fallback.append(download, text('p', 'Открой скачанный файл в «Файлах». Если он не добавляется, используй «Установить команду» выше — установка через iCloud не требует скачивания файла.'));
       setup.append(fallback);
       const automation = document.createElement('details');
-      automation.append(text('summary', 'Запускать автоматически'));
-      automation.append(text('p', 'После успешной сверки: «Команды» → «Автоматизация» → «+» → «Приложение» → YAZIO → «Закрывается» → «Немедленный запуск» → «WEDX — питание 2».'));
+      automation.open = true;
+      automation.append(text('summary', 'Автоматическая передача из YAZIO'));
+      automation.append(text('p', 'WEDX сам показывает новые данные после их передачи. Чтобы iPhone отправлял питание без ручного запуска команды, один раз настрой автоматизацию на телефоне:'));
+      const automationSteps = document.createElement('ol');
+      for (const step of [
+        'Открой «Команды» → «Автоматизация» → «+» → «Приложение».',
+        'Выбери YAZIO и событие «Закрывается».',
+        'Выбери «Немедленный запуск» → «Далее» → «WEDX — питание 2» и сохрани.',
+      ]) automationSteps.append(text('li', step));
+      automation.append(automationSteps);
       automation.append(text('p', 'Если данные ещё не успели попасть из YAZIO в «Здоровье» или iPhone заблокирован, повтори запуск вручную. Команда заново проверяет сегодня и предыдущие 7 дней.'));
       setup.append(automation); section.append(setup);
       const tokenList = document.createElement('div');
@@ -94,27 +103,8 @@ export function integrationsPanel(user, { open = false } = {}) {
     }
     panel.append(section);
   }
-  const nutrition = document.createElement('section');
-  nutrition.append(text('h4', 'Записано в YAZIO'));
-  nutrition.append(text('p', 'Калории и белок за последние 7 дней с записями. Пропуски не считаются нулём; наличие записей не означает, что дневник заполнен полностью.'));
-  const rows = document.createElement('div'); nutrition.append(rows);
-  const refresh = async () => {
-    const { data, error } = await supabase.from('nutrition_daily').select('day,calories_kcal,protein_grams,updated_at').order('day', { ascending: false }).limit(7);
-    rows.replaceChildren();
-    if (error) { rows.append(text('p', 'Нет связи с базой.')); return; }
-    if (!data.length) { rows.append(text('p', 'Импортов пока нет. После настройки команды здесь появятся калории и белок из YAZIO.')); return; }
-    const latest = data.reduce((value, day) => day.updated_at > value ? day.updated_at : value, '');
-    if (latest) rows.append(text('p', `Последнее обновление: ${new Date(latest).toLocaleString('ru-RU')}`));
-    for (const day of data) {
-      const row = document.createElement('div'); row.className = 'nutrition-day';
-      row.append(text('strong', new Date(`${day.day}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })));
-      row.append(text('span', `${Number(day.calories_kcal).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} ккал`));
-      row.append(text('span', `${Number(day.protein_grams).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} г белка`));
-      rows.append(row);
-    }
-  };
-  nutrition.append(button('Обновить питание', refresh));
-  panel.addEventListener('toggle', () => { if (panel.open) refresh(); });
+  const nutrition = nutritionPanel(user.id);
+  panel.addEventListener('toggle', () => { if (panel.open) nutrition.refresh(); });
   panel.append(nutrition, feedback);
   return panel;
 }

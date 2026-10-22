@@ -408,7 +408,7 @@
   .device-link-form input:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
   .cloudbox details{margin-top:14px;}
   .cloudbox summary{cursor:pointer;color:var(--text);font-size:16px;padding:10px 0;}
-  .integrations-panel section{border-top:1px solid var(--line);padding:12px 0;}
+  .integrations-panel section,.integrations-panel wedx-nutrition{display:block;border-top:1px solid var(--line);padding:12px 0;}
   .integrations-panel h4{margin:4px 0;color:var(--text);}
   .integrations-panel textarea{width:100%;max-width:100%;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);border-radius:8px;font-size:13px;user-select:text;}
   .health-setup{background:var(--ink);border:1px solid var(--line);border-radius:12px;padding:0 12px 12px;}
