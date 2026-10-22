@@ -188,7 +188,7 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     box.dataset.healthPage = String(health);
     const status = node('p', labels[currentStatus]); status.dataset.syncStatus = ''; status.setAttribute('role', 'status');
     box.append(node('h3', health ? 'Apple Health' : 'Данные и подключения'));
-    if (health) box.append(node('p', 'YAZIO → «Здоровье» → WEDX. Для передачи калорий и белка используется команда на iPhone.'));
+    if (health) box.append(node('p', 'YAZIO → «Здоровье» → WEDX. Питание и активность передаются командой на iPhone.'));
     box.append(status);
     if (!backendConfigured) box.append(node('p', 'Тренировки работают локально. Облачная синхронизация появится после настройки проекта.'));
     else box.append(deviceConnection());
