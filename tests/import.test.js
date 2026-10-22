@@ -24,6 +24,20 @@ test('the endpoint hashes the secret token and passes only normalized daily valu
   assert.ok(!JSON.stringify(call).includes('wedx_'));
   assert.deepEqual(call.args.p_days, nutrition.days);
 });
+test('broken shortcut requests explain the payload problem without blaming the key or writing data', async () => {
+  let calls = 0;
+  const handler = createHandler(async () => { calls++; return {}; });
+  for (const [body, code] of [[undefined, 'empty_payload'], ['', 'empty_payload'], ['  ', 'empty_payload'], ['not JSON', 'invalid_json'], ['{}', 'unsupported_payload']]) {
+    const response = await handler(new Request('https://example.com/health-import', {
+      method: 'POST', headers: { Authorization: 'Bearer wedx_' + 'a'.repeat(64), 'Content-Type': 'application/json' }, body,
+    }));
+    assert.equal(response.status, 400);
+    const result = await response.json();
+    assert.equal(result.error, code);
+    assert.match(result.message, /ключ менять не нужно/);
+  }
+  assert.equal(calls, 0);
+});
 test('revoked tokens, duplicate-id conflicts and rate limits return useful HTTP statuses', async () => {
   for (const [code, status] of [['28000', 401], ['23505', 409], ['P0001', 429]]) {
     const handler = createHandler(async () => ({ error: { code } }));

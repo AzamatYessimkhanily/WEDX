@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'WEDX — питание'
+NAME = 'WEDX — питание 2'
 ENDPOINT = 'https://lhwvpjaatsroijgozoro.supabase.co/functions/v1/health-import'
 
 
@@ -134,8 +134,9 @@ def build(token='', mock=False):
         '{"version":2,"source":"yazio:apple-health","startDate":"', start,
         '","endDate":"', end, '","energySamples":[', energy, '],"proteinSamples":[', protein, ']}'))
     if not mock:
+        # File bodies require a direct attachment; wrapping it in text() sends no body.
         response = add('downloadurl', 'Contents of URL', WFURL=ENDPOINT, WFHTTPMethod='POST', WFHTTPBodyType='File',
-                       WFRequestVariable=text(payload), WFHTTPHeaders=dictionary([
+                       WFRequestVariable=payload, WFHTTPHeaders=dictionary([
                            ('Content-Type', 'application/json', False), ('Authorization', text('Bearer ', key), False),
                        ]))
         message = get_key('message', response)

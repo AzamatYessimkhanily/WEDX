@@ -5,7 +5,7 @@ async function sha256(value) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))), b => b.toString(16).padStart(2, '0')).join('');
 }
 function reply(body, status) {
-  if (status >= 400 && !body.message) body = { ...body, message: `Питание не передано (код ${status}). Проверь ключ и установи актуальную команду WEDX.` };
+  if (status >= 400 && !body.message) body = { ...body, message: `Питание не передано (код ${status}). Повтори запуск. Если ошибка повторится, сообщи этот код.` };
   return Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -17,7 +17,8 @@ export function createHandler(rpc) {
     if (!request.headers.get('Content-Type')?.includes('application/json')) return reply({ error: 'JSON required' }, 415);
     // Bound streamed bodies even when Content-Length is absent or inaccurate.
     const reader = request.body?.getReader();
-    if (!reader) return reply({ error: 'Body required' }, 400);
+    const emptyBody = () => reply({ error: 'empty_payload', message: 'Команда отправила пустой запрос. Установи исправленную команду WEDX; ключ менять не нужно.' }, 400);
+    if (!reader) return emptyBody();
     let text = '', bytes = 0;
     const decoder = new TextDecoder();
     try {
@@ -29,6 +30,7 @@ export function createHandler(rpc) {
         text += decoder.decode(value, { stream: true });
       }
       text += decoder.decode();
+      if (!text.trim()) return emptyBody();
       const input = JSON.parse(text);
       let body, skipped = [];
       if (input?.version === 2) {
@@ -41,6 +43,7 @@ export function createHandler(rpc) {
         body = validateImport({ version: 1, source: input.source, requestId: crypto.randomUUID(), days: summary.days });
       } else {
         if (bytes > 65536) return reply({ error: 'Body too large' }, 413);
+        if (input?.version !== 1) return reply({ error: 'unsupported_payload', message: 'Формат отправки команды не поддерживается. Установи актуальную команду WEDX; ключ менять не нужно.' }, 400);
         body = validateImport(input);
       }
       const { data, error } = await rpc('ingest_nutrition', {
@@ -56,7 +59,8 @@ export function createHandler(rpc) {
         message: `Дней обновлено: ${data.records}.${skipped.length ? ` Пропущено дней без одного из показателей: ${skipped.length}.` : ''} Сверь калории и белок в WEDX с YAZIO.` }, 200);
     } catch (error) {
       if (error instanceof SampleImportError) return reply({ error: 'Invalid health samples', message: error.message }, 400);
-      if (error instanceof SyntaxError || error.message.startsWith('Expected ') || error.message.startsWith('Invalid date')) return reply({ error: 'Invalid import payload' }, 400);
+      if (error instanceof SyntaxError) return reply({ error: 'invalid_json', message: 'Команда отправила данные в неверном формате JSON. Установи исправленную команду WEDX; ключ менять не нужно.' }, 400);
+      if (error.message.startsWith('Expected ') || error.message.startsWith('Invalid date')) return reply({ error: 'invalid_days', message: 'В запросе неверные даты или дневные итоги. Данные WEDX не изменены.' }, 400);
       return reply({ error: 'Import temporarily unavailable' }, 503);
     }
   };

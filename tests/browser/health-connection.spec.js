@@ -68,13 +68,13 @@ test('iPhone setup installs a public template, scopes the secret to nutrition, a
   await expect(page).toHaveURL(/\?view=health$/);
   await expect(page.getByText(/Импортов пока нет/)).toBeVisible();
   const install = page.getByRole('link', { name: 'Установить команду', exact: true });
-  await expect(install).toHaveAttribute('href', 'https://www.icloud.com/shortcuts/5bbb688f755143e8bf0d08040ede7162');
+  await expect(install).toHaveAttribute('href', 'https://www.icloud.com/shortcuts/3a4edd21348f4fcb9c2baed216e9e1e3');
   await expect(install).not.toHaveAttribute('download');
   const run = page.getByRole('link', { name: 'Запустить на iPhone', exact: true });
-  expect(new URL(await run.getAttribute('href')).searchParams.get('name')).toBe('WEDX — питание');
+  expect(new URL(await run.getAttribute('href')).searchParams.get('name')).toBe('WEDX — питание 2');
   await page.getByText('Скачать команду файлом', { exact: true }).click();
   const download = page.getByRole('link', { name: 'Скачать .shortcut', exact: true });
-  await expect(download).toHaveAttribute('download', 'WEDX — питание.shortcut');
+  await expect(download).toHaveAttribute('download', 'WEDX — питание 2.shortcut');
   const file = await request.get(await download.getAttribute('href'));
   expect(file.status()).toBe(200);
   expect((await file.body()).subarray(0, 4).toString()).toBe('AEA1');
