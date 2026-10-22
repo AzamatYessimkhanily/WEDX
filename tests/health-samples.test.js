@@ -58,3 +58,37 @@ test('the live-contract handler stores only daily totals, accepts corrections an
   assert.match((await invalid.json()).message, /единица/);
   assert.equal(calls.length, 2);
 });
+
+const active = (start = '10:00', end = '10:30', source = 'YAZIO') => ({ ...sample('2026-10-21', 120.5, 'kcal'), source,
+  start: `2026-10-21T${start}:00+05:00`, end: `2026-10-21T${end}:00+05:00` });
+const v3 = changes => payload({ version: 3, carbsSamples: [sample('2026-10-21', 125.75, 'g')],
+  fatSamples: [sample('2026-10-21', 32000, 'mg')], activitySamples: [active()], ...changes });
+test('expanded snapshot imports precise macros and unambiguous YAZIO active energy', () => {
+  assert.deepEqual(summarizeSamples(v3()).days[0], { date: '2026-10-21', caloriesKcal: 1250.5, proteinGrams: 75.5,
+    carbsGrams: 125.75, fatGrams: 32, caloriesBurned: 120.5, activityStatus: 'verified' });
+  const missing = summarizeSamples(v3({ carbsSamples: [], fatSamples: [], activitySamples: [] })).days[0];
+  assert.equal(Object.hasOwn(missing, 'fatGrams'), false);
+  assert.equal(missing.caloriesBurned, null);
+  assert.equal(missing.activityStatus, 'no_data');
+});
+test('activity sources and overlapping intervals are never summed into a misleading calorie budget', () => {
+  for (const [rows, status] of [
+    [[active(), active('10:30', '11:00')], 'verified'],
+    [[active(), active('10:15', '10:45')], 'overlap'],
+    [[active(), active()], 'overlap'],
+    [[active(), active('12:00', '13:00', 'Apple Watch')], 'multiple_sources'],
+    [[{ ...active(), end: '2026-10-22T00:30:00+05:00' }], 'overlap'],
+  ]) {
+    const result = summarizeSamples(v3({ activitySamples: rows })).days[0];
+    assert.equal(result.activityStatus, status);
+    assert.equal(result.caloriesBurned, status === 'verified' ? 241 : null);
+  }
+  assert.throws(() => summarizeSamples(v3({ activitySamples: [{ ...active(), start: 'invalid' }] })));
+});
+test('v3 handler retains new metrics and old v2 remains compatible', async () => {
+  let days;
+  const handler = createHandler(async (_, args) => { days = args.p_days; return { data: { records: days.length } }; });
+  const response = await handler(new Request('https://example.com', { method: 'POST',
+    headers: { Authorization: 'Bearer wedx_' + 'a'.repeat(64), 'Content-Type': 'application/json' }, body: JSON.stringify(v3()) }));
+  assert.equal(response.status, 200); assert.equal(days[0].carbsGrams, 125.75); assert.equal(days[0].caloriesBurned, 120.5);
+});

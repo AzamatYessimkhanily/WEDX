@@ -3,7 +3,7 @@ import { ownerA, ownerB } from '../fixtures.js';
 
 async function connect(page) {
   const state = {
-    owner: ownerA, requests: [], fail: false, hold: null,
+    owner: ownerA, requests: [], fail: false, hold: null, goals: [], goalWrites: [],
     days: [{ day: '2026-10-21', calories_kcal: 2100, protein_grams: 150, updated_at: '2026-10-22T07:00:00Z' }],
   };
   await page.clock.install({ time: new Date('2026-10-22T07:00:00Z') });
@@ -16,6 +16,10 @@ async function connect(page) {
         user: { id: state.owner, aud: 'authenticated', role: 'authenticated', created_at: new Date().toISOString(), app_metadata: {}, user_metadata: {} } });
     }
     if (pathname === '/rest/v1/rpc/save_workout_state') return json({ status: 'saved', revision: 1 });
+    if (pathname === '/rest/v1/nutrition_goals') {
+      if (route.request().method() === 'POST') { const goal = route.request().postDataJSON(); state.goalWrites.push(goal); state.goals.push(goal); return json(null); }
+      return json(state.goals);
+    }
     if (pathname === '/rest/v1/nutrition_daily') {
       state.requests.push(Object.fromEntries(searchParams));
       const days = structuredClone(state.days);
@@ -106,4 +110,33 @@ test('an old request cannot overwrite another account after the panel is replace
   await expect(page.locator('.nutrition-day')).not.toContainText('9 999');
   expect(state.requests.slice(after).every(query => query.user_id === `eq.${ownerB}`)).toBe(true);
   expect(state.requests.length - after).toBe(1); // Removed panels no longer poll.
+});
+
+
+test('expanded day shows macros, unknown activity and dated manual goals without horizontal overflow', async ({ page }) => {
+  const state = await connect(page);
+  state.days[0] = { ...state.days[0], carbs_grams: 190.5, fat_grams: 45.25,
+    calories_burned: 200, activity_status: 'verified', metric_synced_at: { carbs: '2026-10-22T07:00:00Z' } };
+  await page.clock.runFor(15_100);
+  const row = page.locator('.nutrition-day'); await row.locator('summary').click();
+  await expect(row).toContainText('190,5 г'); await expect(row).toContainText('45,3 г');
+  await expect(row).toContainText('200 ккал'); await expect(row).toContainText('Лимиты для этого дня не заданы');
+  await page.getByText('Лимиты калорий и белка', { exact: true }).click();
+  await page.getByLabel('Действуют с даты').fill('2026-10-21');
+  await page.getByLabel('Базовый лимит без активности, ккал').fill('2000');
+  await page.getByLabel('Цель белка, г', { exact: true }).fill('140');
+  await page.getByLabel('Прибавлять подтверждённый расход активности к лимиту').check();
+  await page.getByRole('button', { name: 'Сохранить лимиты', exact: true }).click();
+  await expect(page.getByText('Лимиты сохранены.', { exact: true })).toBeVisible();
+  expect(state.goalWrites[0].user_id).toBe(ownerA);
+  await expect(row).toContainText('2 200 ккал'); await expect(row).toContainText('100 ккал');
+  await expect(row).toContainText('-10 г');
+  state.days[0].activity_status = 'multiple_sources'; state.days[0].calories_burned = null;
+  await page.clock.runFor(15_100);
+  await expect(row).toContainText('Есть записи других источников');
+  await expect(row).not.toContainText('2 200 ккал');
+  await row.locator('summary').click();
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await row.screenshot({ path: 'test-results/nutrition-expanded.png' });
 });

@@ -86,3 +86,27 @@ test('integration token imports are scoped, idempotent, correctable and revocabl
   await identity('', 'service_role');
   await assert.rejects(ingest());
 });
+
+test('new metrics survive legacy updates; ambiguous activity is cleared and targets are owner-isolated', async () => {
+  await identity(ownerA);
+  await db.query('insert into public.integration_tokens(user_id,label,source,token_hash) values($1,$2,$3,$4)', [ownerA, 'expanded', 'apple-health', tokenHash]);
+  await db.query('insert into public.nutrition_goals(user_id,effective_from,base_calorie_goal,protein_goal_g) values($1,$2,2000,130)', [ownerA,'2026-10-21']);
+  await identity('', 'service_role');
+  const expanded = [{ ...nutrition.days[0], carbsGrams: 210.75, fatGrams: 0, activityStatus: 'verified', caloriesBurned: 159.5 }];
+  await ingest('55555555-4444-4444-8444-444444444444', 'd'.repeat(64), expanded);
+  await ingest('66666666-4444-4444-8444-444444444444', 'e'.repeat(64));
+  await identity(ownerA);
+  let row = (await db.query('select * from public.nutrition_daily')).rows[0];
+  assert.equal(Number(row.carbs_grams), 210.75); assert.equal(Number(row.fat_grams), 0); assert.equal(Number(row.calories_burned), 159.5);
+  assert.ok(row.metric_synced_at.carbs);
+  await identity('', 'service_role');
+  await ingest('77777777-4444-4444-8444-444444444444', 'f'.repeat(64), [{ ...nutrition.days[0], activityStatus: 'multiple_sources', caloriesBurned: null }]);
+  await identity(ownerA);
+  row = (await db.query('select * from public.nutrition_daily')).rows[0];
+  assert.equal(row.calories_burned, null); assert.equal(row.activity_status, 'multiple_sources');
+  assert.equal(Number(row.carbs_grams), 210.75);
+  await identity(ownerB);
+  assert.equal((await db.query('select * from public.nutrition_goals')).rows.length, 0);
+  await assert.rejects(db.query('insert into public.nutrition_goals(user_id,effective_from,base_calorie_goal,protein_goal_g) values($1,$2,2000,130)',[ownerA,'2026-10-22']));
+  await identity('', 'anon'); await assert.rejects(db.query('select * from public.nutrition_goals'));
+});

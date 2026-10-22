@@ -416,7 +416,18 @@
   .health-setup li{margin:10px 0;}
   .connection-action{display:inline-block;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--text);text-decoration:none;margin:4px 6px 4px 0;}
   .connection-secret{border-left:3px solid var(--amber);padding-left:12px;margin:12px 0;}
-  .nutrition-day{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  .nutrition-day{padding:10px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  .nutrition-day>summary{display:grid;grid-template-columns:1fr auto;gap:4px 12px;cursor:pointer;}
+  .nutrition-day>summary strong:before{content:"▸ ";}
+  .nutrition-day[open]>summary strong:before{content:"▾ ";}
+  .nutrition-metrics{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;font-size:14px;}
+  .nutrition-metrics dt{color:var(--muted);}
+  .nutrition-metrics dd{margin:0;text-align:right;}
+  .nutrition-day .metric-times{font-size:11px;overflow-wrap:anywhere;}
+  .nutrition-goals form{display:grid;gap:12px;padding-top:12px;}
+  .nutrition-goals label{display:block;}
+  .nutrition-goals input:not([type=checkbox]){display:block;width:100%;box-sizing:border-box;padding:10px;background:var(--ink);color:var(--text);border:1px solid var(--line);border-radius:8px;font-size:16px;margin-top:5px;}
+  .nutrition-goals input[type=checkbox]{margin-right:8px;}
   .nutrition-day strong{grid-row:span 2;align-self:center;font-weight:600;}
   .nutrition-day span{text-align:right;}
   [data-sync-conflict]{border:1px solid var(--amber);border-radius:8px;padding:12px;margin:10px 0;}

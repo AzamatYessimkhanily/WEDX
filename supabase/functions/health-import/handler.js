@@ -33,7 +33,7 @@ export function createHandler(rpc) {
       if (!text.trim()) return emptyBody();
       const input = JSON.parse(text);
       let body, skipped = [];
-      if (input?.version === 2) {
+      if ([2, 3].includes(input?.version)) {
         const summary = summarizeSamples(input);
         skipped = summary.skipped;
         if (!summary.days.length) return reply({ status: 'no_data', records: 0,
@@ -56,7 +56,7 @@ export function createHandler(rpc) {
           message: status === 401 ? 'Ключ отключён или неверен. Создай новый ключ в WEDX.' : status === 429 ? 'Слишком частые запуски. Повтори через минуту.' : 'Питание не сохранено. Повтори импорт позже.' }, status);
       }
       return reply({ ...data, skippedDays: skipped,
-        message: `Дней обновлено: ${data.records}.${skipped.length ? ` Пропущено дней без одного из показателей: ${skipped.length}.` : ''} Сверь калории и белок в WEDX с YAZIO.` }, 200);
+        message: `Дней обновлено: ${data.records}.${skipped.length ? ` Пропущено дней без одного из показателей: ${skipped.length}.` : ''} Сверь показатели в WEDX с YAZIO.` }, 200);
     } catch (error) {
       if (error instanceof SampleImportError) return reply({ error: 'Invalid health samples', message: error.message }, 400);
       if (error instanceof SyntaxError) return reply({ error: 'invalid_json', message: 'Команда отправила данные в неверном формате JSON. Установи исправленную команду WEDX; ключ менять не нужно.' }, 400);

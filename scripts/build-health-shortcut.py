@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'WEDX — питание 2'
+NAME = 'WEDX — питание 3'
 ENDPOINT = 'https://lhwvpjaatsroijgozoro.supabase.co/functions/v1/health-import'
 
 
@@ -60,11 +60,11 @@ def build(token='', mock=False):
     def get_key(key, input):
         return add('getvalueforkey', 'Dictionary Value', WFGetDictionaryValueType='Value', WFDictionaryKey=key, WFInput=input)
 
-    def format_date(input):
-        return add('format.date', 'Formatted Date', WFDate=text(input), WFDateFormatStyle='Custom', WFDateFormat='yyyy-MM-dd', WFLocale='en_US_POSIX')
+    def format_date(input, pattern='yyyy-MM-dd'):
+        return add('format.date', 'Formatted Date', WFDate=text(input), WFDateFormatStyle='Custom', WFDateFormat=pattern, WFLocale='en_US_POSIX')
 
-    add('comment', WFCommentActionText='WEDX · Apple «Здоровье» → питание. Только калории и белок из YAZIO за сегодня и предыдущие 7 дней. '
-        'Первый запуск — на разблокированном iPhone. Разреши чтение двух показателей и отправку в свой WEDX. '
+    add('comment', WFCommentActionText='WEDX · Apple «Здоровье» → питание. Калории, белок, углеводы и жиры YAZIO, а также записи активной энергии за сегодня и предыдущие 7 дней. '
+        'Первый запуск — на разблокированном iPhone. Разреши чтение пяти показателей и отправку в свой WEDX. '
         'В базе сохраняются дневные итоги. Пустые дни не заменяют прежние значения. '
         'После первого запуска сверь один день с YAZIO. Команда ничего не записывает в «Здоровье».')
     key = add('gettext', 'Text', WFTextActionText=token or 'ВСТАВЬ_КЛЮЧ_ИЗ_WEDX')
@@ -80,7 +80,9 @@ def build(token='', mock=False):
         yesterday = (dt.datetime.now().astimezone() - dt.timedelta(days=1)).strftime('%Y-%m-%d')
         sample = lambda day, value, unit, source='YAZIO': {'date': day + 'T12:00:00', 'value': value, 'unit': unit, 'source': source}
         data = {'energy': [sample(today, 200.25, 'kcal'), sample(today, 799.75, 'kcal'), sample(today, 999, 'kcal', 'Other App'), sample(yesterday, 500, 'kcal')],
-                'protein': [sample(today, 30, 'g'), sample(today, 45.5, 'g'), sample(today, 0, 'g')]}
+                'protein': [sample(today, 30, 'g'), sample(today, 45.5, 'g'), sample(today, 0, 'g')],
+                'carbs': [sample(today, 100.25, 'g')], 'fat': [sample(today, 35.75, 'g')],
+                'activity': [{**sample(today, 159.5, 'kcal'), 'end': today + 'T12:10:00'}]}
         fixture_text = add('gettext', 'Text', WFTextActionText=json.dumps(data))
         fixtures = add('detect.dictionary', 'Dictionary', WFInput=fixture_text)
 
@@ -106,11 +108,11 @@ def build(token='', mock=False):
 
         def detail(name):
             if mock:
-                return get_key({'Source': 'source', 'Value': 'value', 'Unit': 'unit', 'Start Date': 'date'}[name], item)
+                return get_key({'Source': 'source', 'Value': 'value', 'Unit': 'unit', 'Start Date': 'date', 'End Date': 'end'}[name], item)
             return add('properties.health.quantity', name, WFContentItemPropertyName=name, WFInput=item)
 
         source = detail('Source')
-        match = add('text.match', 'Matches', WFMatchTextPattern='(?i)^yazio(?:$|[\\s:–—-])', text=text(source))
+        match = add('text.match', 'Matches', WFMatchTextPattern='.+' if kind == 'activity' else '(?i)^yazio(?:$|[\\s:–—-])', text=text(source))
         count = add('count', 'Count', Input=match, WFCountType='Items')
         condition = str(uuid.uuid4()).upper()
         add('conditional', GroupingIdentifier=condition, WFControlFlowMode=0, WFCondition=2, WFNumberValue=0,
@@ -118,9 +120,11 @@ def build(token='', mock=False):
         day = format_date(detail('Start Date'))
         amount = detail('Value')
         unit = detail('Unit')
-        row = add('dictionary', 'Dictionary', WFItems=dictionary([
-            ('date', day, False), ('source', source, False), ('value', amount, True), ('unit', unit, False),
-        ]))
+        fields = [('date', day, False), ('source', source, False), ('value', amount, True), ('unit', unit, False)]
+        if kind == 'activity':
+            fields.extend([('start', format_date(detail('Start Date'), "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"), False),
+                           ('end', format_date(detail('End Date'), "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"), False)])
+        row = add('dictionary', 'Dictionary', WFItems=dictionary(fields))
         add('gettext', 'Text', WFTextActionText=text(row))
         add('conditional', GroupingIdentifier=condition, WFControlFlowMode=1)
         add('nothing')
@@ -130,9 +134,13 @@ def build(token='', mock=False):
 
     energy = samples('energy', 'Dietary Calories')
     protein = samples('protein', 'Protein')
+    carbs = samples('carbs', 'Carbohydrates')
+    fat = samples('fat', 'Total Fat')
+    activity = samples('activity', 'Active Calories')
     payload = add('gettext', 'Text', WFTextActionText=text(
-        '{"version":2,"source":"yazio:apple-health","startDate":"', start,
-        '","endDate":"', end, '","energySamples":[', energy, '],"proteinSamples":[', protein, ']}'))
+        '{"version":3,"source":"yazio:apple-health","startDate":"', start,
+        '","endDate":"', end, '","energySamples":[', energy, '],"proteinSamples":[', protein, '],"carbsSamples":[', carbs,
+        '],"fatSamples":[', fat, '],"activitySamples":[', activity, ']}'))
     if not mock:
         # File bodies require a direct attachment; wrapping it in text() sends no body.
         response = add('downloadurl', 'Contents of URL', WFURL=ENDPOINT, WFHTTPMethod='POST', WFHTTPBodyType='File',
