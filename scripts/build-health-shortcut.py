@@ -41,11 +41,10 @@ def variable(name):
 def dictionary(values):
     items = []
     for key, value, numeric in values:
-        if numeric:
-            encoded = value if isinstance(value, dict) else state('WFNumberSubstitutableState', value)
-        else:
-            encoded = text(value)
-        items.append({'WFItemType': 1 if numeric else 0, 'WFKey': text(key), 'WFValue': encoded})
+        # Numbers use item type 3 (1 means a nested dictionary) and token strings.
+        # The wrong type crashes Shortcuts during import (WFPropertyListParameterValue).
+        encoded = text(value)
+        items.append({'WFItemType': 3 if numeric else 0, 'WFKey': text(key), 'WFValue': encoded})
     return state('WFDictionaryFieldValue', {'WFDictionaryFieldValueItems': items})
 
 
@@ -62,7 +61,7 @@ def build(token='', mock=False):
         return add('getvalueforkey', 'Dictionary Value', WFGetDictionaryValueType='Value', WFDictionaryKey=key, WFInput=input)
 
     def format_date(input):
-        return add('format.date', 'Formatted Date', WFDate=input, WFDateFormatStyle='Custom', WFDateFormat='yyyy-MM-dd', WFLocale='en_US_POSIX')
+        return add('format.date', 'Formatted Date', WFDate=text(input), WFDateFormatStyle='Custom', WFDateFormat='yyyy-MM-dd', WFLocale='en_US_POSIX')
 
     add('comment', WFCommentActionText='WEDX · Apple «Здоровье» → питание. Только калории и белок из YAZIO за сегодня и предыдущие 7 дней. '
         'Первый запуск — на разблокированном iPhone. Разреши чтение двух показателей и отправку в свой WEDX. '
@@ -71,7 +70,7 @@ def build(token='', mock=False):
     key = add('gettext', 'Text', WFTextActionText=token or 'ВСТАВЬ_КЛЮЧ_ИЗ_WEDX')
     now = add('date', 'Date', WFDateActionMode='Current Date')
     end = format_date(now)
-    start_raw = add('adjustdate', 'Adjusted Date', WFDate=now, WFAdjustOperation='Subtract',
+    start_raw = add('adjustdate', 'Adjusted Date', WFDate=text(now), WFAdjustOperation='Subtract',
                     WFDuration=state('WFQuantityFieldValue', {'Magnitude': '7', 'Unit': 'days'}))
     start = format_date(start_raw)
 
@@ -112,7 +111,7 @@ def build(token='', mock=False):
 
         source = detail('Source')
         match = add('text.match', 'Matches', WFMatchTextPattern='(?i)^yazio(?:$|[\\s:–—-])', text=text(source))
-        count = add('count', 'Count', WFInput=match, WFCountType='Items')
+        count = add('count', 'Count', Input=match, WFCountType='Items')
         condition = str(uuid.uuid4()).upper()
         add('conditional', GroupingIdentifier=condition, WFControlFlowMode=0, WFCondition=2, WFNumberValue=0,
             WFInput={'Type': 'Variable', 'Variable': count})
@@ -127,7 +126,7 @@ def build(token='', mock=False):
         add('nothing')
         add('conditional', GroupingIdentifier=condition, WFControlFlowMode=2)
         results = add('repeat.each', 'Repeat Results', GroupingIdentifier=loop, WFControlFlowMode=2)
-        return add('text.combine', 'Combined Text', text=results, WFTextSeparator='Custom', WFTextCustomSeparator=',')
+        return add('text.combine', 'Combined Text', text=text(results), WFTextSeparator='Custom', WFTextCustomSeparator=',')
 
     energy = samples('energy', 'Dietary Calories')
     protein = samples('protein', 'Protein')
