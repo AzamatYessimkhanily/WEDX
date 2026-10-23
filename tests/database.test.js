@@ -110,3 +110,21 @@ test('new metrics survive legacy updates; ambiguous activity is cleared and targ
   await assert.rejects(db.query('insert into public.nutrition_goals(user_id,effective_from,base_calorie_goal,protein_goal_g) values($1,$2,2000,130)',[ownerA,'2026-10-22']));
   await identity('', 'anon'); await assert.rejects(db.query('select * from public.nutrition_goals'));
 });
+
+
+test('native Health imports replace the same day and keep seven-metric provenance across corrections', async () => {
+  await identity('', 'service_role');
+  const native = [{ ...nutrition.days[0], caloriesKcal: 1321, proteinGrams: 58, carbsGrams: 121,
+    fatGrams: 70, activityStatus: 'health_total', caloriesBurned: 90, nutritionOrigin: 'apple-health' }];
+  await ingest('88888888-4444-4444-8444-444444444444', '1'.repeat(64), native);
+  await identity(ownerA);
+  let rows = (await db.query('select * from public.nutrition_daily')).rows;
+  assert.equal(rows.length, 1); assert.equal(rows[0].nutrition_origin, 'apple-health');
+  assert.equal(Number(rows[0].calories_burned), 90); assert.equal(rows[0].activity_status, 'health_total');
+  await db.query('insert into public.nutrition_goals(user_id,effective_from,base_calorie_goal) values($1,$2,2296)', [ownerA,'2026-10-23']);
+  await identity('', 'service_role');
+  await ingest('99999999-4444-4444-8444-444444444444', '2'.repeat(64), [{ ...native[0], caloriesKcal: 1200 }]);
+  await identity(ownerA);
+  rows = (await db.query('select * from public.nutrition_daily')).rows;
+  assert.equal(rows.length, 1); assert.equal(Number(rows[0].calories_kcal), 1200);
+});

@@ -29,19 +29,19 @@ export function integrationsPanel(user, { open = false } = {}) {
       setup.className = 'health-setup'; setup.open = true;
       setup.append(text('summary', 'Подключить iPhone'));
       const steps = document.createElement('ol');
-      steps.append(text('li', 'В «Здоровье» проверь пищевую энергию, белок, углеводы, жиры и активную энергию: источником должен быть YAZIO.'));
-      steps.append(text('li', 'Создай ключ ниже и скопируй его. Установи команду и вставь ключ при добавлении.'));
-      steps.append(text('li', 'Запусти «WEDX — питание 4» на разблокированном iPhone. Разреши чтение пяти показателей и отправку в WEDX.'));
-      steps.append(text('li', 'Вернись в WEDX: питание загрузится автоматически. Сверь один день с YAZIO. Сегодняшние значения меняются по мере заполнения дневника.'));
-      const install = link('Установить команду', 'https://www.icloud.com/shortcuts/b99072bde9754f2ab41d9349ea936fbe');
+      steps.append(text('li', 'В «Здоровье» проверь пищевую энергию, белок, углеводы, жиры и активную энергию. YAZIO должен передавать туда питание.'));
+      steps.append(text('li', 'Скопируй ключ из первого действия «Текст» прежней команды WEDX. Если его нет — создай ниже. Установи новую команду и вставь ключ.'));
+      steps.append(text('li', 'Запусти «WEDX — Здоровье» на разблокированном iPhone. Разреши чтение пяти показателей и отправку в WEDX.'));
+      steps.append(text('li', 'Вернись в WEDX: питание загрузится автоматически. Сверь пять показателей за сегодня с «Здоровьем». Сегодняшние значения меняются по мере заполнения дневника.'));
+      const install = link('Установить команду', 'https://www.icloud.com/shortcuts/6df804e55175488686de84f1b0d80a9f');
       install.target = '_blank'; install.rel = 'noopener noreferrer';
-      setup.append(steps, install, link('Запустить на iPhone', `shortcuts://run-shortcut?name=${encodeURIComponent('WEDX — питание 4')}`));
+      setup.append(steps, install, link('Запустить на iPhone', `shortcuts://run-shortcut?name=${encodeURIComponent('WEDX — Здоровье')}`));
       setup.append(text('p', 'Установка откроет страницу iCloud. Нажми «Получить быструю команду», затем добавь её в «Команды». Если страница не открывается из WEDX, открой ссылку в Safari.'));
-      setup.append(text('p', 'Для углеводов, жиров и расхода установи «WEDX — питание 4» и выбери её в автоматизации вместо прежней команды. Ключ менять не нужно: его можно скопировать из первого действия «Текст» в старой команде через кнопку «…».'));
+      setup.append(text('p', 'После успешного запуска выбери «WEDX — Здоровье» в автоматизации «Когда закрывается YAZIO» → «Запускать немедленно». Затем удали прежние «WEDX — питание», «питание 2», «питание 3» и «питание 4». Оставь одну команду и одну автоматизацию.'));
       const fallback = document.createElement('details');
       fallback.append(text('summary', 'Скачать команду файлом'));
-      const download = link('Скачать .shortcut', `${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — питание 4.shortcut')}`);
-      download.download = 'WEDX — питание 4.shortcut';
+      const download = link('Скачать .shortcut', `${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — Здоровье.shortcut')}`);
+      download.download = 'WEDX — Здоровье.shortcut';
       fallback.append(download, text('p', 'Открой скачанный файл в «Файлах». Если он не добавляется, используй «Установить команду» выше — установка через iCloud не требует скачивания файла.'));
       setup.append(fallback);
       const automation = document.createElement('details');
@@ -52,7 +52,7 @@ export function integrationsPanel(user, { open = false } = {}) {
       for (const step of [
         'Открой «Команды» → «Автоматизация» → «+» → «Приложение».',
         'Выбери YAZIO и событие «Закрывается».',
-        'Выбери «Немедленный запуск» → «Далее» → «WEDX — питание 4» и сохрани.',
+        'Выбери «Немедленный запуск» → «Далее» → «WEDX — Здоровье» и сохрани.',
       ]) automationSteps.append(text('li', step));
       automation.append(automationSteps);
       automation.append(text('p', 'Если данные ещё не успели попасть из YAZIO в «Здоровье» или iPhone заблокирован, повтори запуск вручную. Команда заново проверяет сегодня и предыдущие 7 дней.'));

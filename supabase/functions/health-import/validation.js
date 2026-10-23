@@ -22,9 +22,13 @@ export function validateImport(body) {
       }
     }
     if (Object.hasOwn(day, 'activityStatus')) {
-      if (!['verified', 'no_data', 'multiple_sources', 'overlap'].includes(day.activityStatus)
-        || (day.activityStatus === 'verified' ? !Number.isFinite(day.caloriesBurned) || day.caloriesBurned < 0 || day.caloriesBurned > 100000 : day.caloriesBurned !== null)) throw new Error('Invalid date or activity total');
+      if (!['verified', 'health_total', 'no_data', 'multiple_sources', 'overlap'].includes(day.activityStatus)
+        || (['verified', 'health_total'].includes(day.activityStatus) ? !Number.isFinite(day.caloriesBurned) || day.caloriesBurned < 0 || day.caloriesBurned > 100000 : day.caloriesBurned !== null)) throw new Error('Invalid date or activity total');
       row.activityStatus = day.activityStatus; row.caloriesBurned = day.caloriesBurned;
+    }
+    if (Object.hasOwn(day, 'nutritionOrigin')) {
+      if (!['yazio', 'apple-health'].includes(day.nutritionOrigin)) throw new Error('Invalid nutrition origin');
+      row.nutritionOrigin = day.nutritionOrigin;
     }
     return row;
   }).sort((a, b) => a.date.localeCompare(b.date));

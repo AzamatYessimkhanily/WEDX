@@ -116,21 +116,22 @@ test('an old request cannot overwrite another account after the panel is replace
 test('expanded day shows macros, unknown activity and dated manual goals without horizontal overflow', async ({ page }) => {
   const state = await connect(page);
   state.days[0] = { ...state.days[0], carbs_grams: 190.5, fat_grams: 45.25,
-    calories_burned: 200, activity_status: 'verified', metric_synced_at: { carbs: '2026-10-22T07:00:00Z' } };
+    calories_burned: 200, activity_status: 'health_total', nutrition_origin: 'apple-health', metric_synced_at: { carbs: '2026-10-22T07:00:00Z' } };
   await page.clock.runFor(15_100);
   const row = page.locator('.nutrition-day'); await row.locator('summary').click();
   await expect(row).toContainText('190,5 г'); await expect(row).toContainText('45,3 г');
-  await expect(row).toContainText('200 ккал'); await expect(row).toContainText('Лимиты для этого дня не заданы');
-  await page.getByText('Лимиты калорий и белка', { exact: true }).click();
-  await page.getByLabel('Действуют с даты').fill('2026-10-21');
-  await page.getByLabel('Базовый лимит без активности, ккал').fill('2000');
-  await page.getByLabel('Цель белка, г', { exact: true }).fill('140');
-  await page.getByLabel('Прибавлять подтверждённый расход активности к лимиту').check();
-  await page.getByRole('button', { name: 'Сохранить лимиты', exact: true }).click();
-  await expect(page.getByText('Лимиты сохранены.', { exact: true })).toBeVisible();
+  await expect(row).toContainText('200 ккал'); await expect(row).toContainText('Дневная норма для этого дня не задана');
+  await page.getByText('Дневная норма калорий', { exact: true }).click();
+  await page.getByLabel('Действует с даты').fill('2026-10-21');
+  await page.getByLabel('Дневная норма без активности, ккал').fill('2000');
+  await page.getByLabel('Прибавлять активность к дневной норме').check();
+  await page.getByRole('button', { name: 'Сохранить норму', exact: true }).click();
+  await expect(page.getByText('Норма сохранена.', { exact: true })).toBeVisible();
   expect(state.goalWrites[0].user_id).toBe(ownerA);
-  await expect(row).toContainText('2 200 ккал'); await expect(row).toContainText('100 ккал');
-  await expect(row).toContainText('-10 г');
+  await expect(row).toContainText('2 000 ккал'); await expect(row).toContainText('100 ккал');
+  await expect(row.locator('dt')).toHaveCount(5); // Plus calories and protein in the summary = seven.
+  await expect(row).toContainText('дневные итоги Apple');
+  await expect(page.getByLabel('Цель белка, г', { exact: true })).toHaveCount(0);
   state.days[0].activity_status = 'multiple_sources'; state.days[0].calories_burned = null;
   await page.clock.runFor(15_100);
   await expect(row).toContainText('Есть записи других источников');

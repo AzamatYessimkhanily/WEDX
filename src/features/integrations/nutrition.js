@@ -11,15 +11,16 @@ function text(tag, value) { const node = document.createElement(tag); node.textC
 class NutritionPanel extends HTMLElement {
   connectedCallback() {
     if (!this.rows) {
-      this.append(text('h4', 'Записано в YAZIO'));
-      this.append(text('p', 'Питание и активность за последние 8 дней с записями. Пропуски не считаются нулём; наличие записей не означает, что дневник заполнен полностью.'));
+      this.append(text('h4', 'Показатели из «Здоровья»'));
+      this.append(text('p', 'Семь показателей за день. Данные питания и активности приходят из «Здоровья»; дневная норма задаётся отдельно. Пропуски не считаются нулём.'));
       this.status = text('p', 'Загружаем питание…');
       this.status.setAttribute('role', 'status');
       this.status.className = 'nutrition-status';
       this.rows = document.createElement('div');
       this.retry = text('button', 'Обновить питание'); this.retry.type = 'button';
       this.retry.onclick = () => this.refresh();
-      this.append(this.status, this.rows, this.retry, goalsForm(this.ownerId, () => this.refresh()));
+      this.goals = goalsForm(this.ownerId, () => this.refresh());
+      this.append(this.status, this.rows, this.retry, this.goals);
     }
     this.events = new AbortController();
     const options = { signal: this.events.signal };
@@ -60,7 +61,7 @@ class NutritionPanel extends HTMLElement {
     try {
       const [nutrition, targets] = await Promise.all([
         supabase.from('nutrition_daily')
-          .select('day,calories_kcal,protein_grams,carbs_grams,fat_grams,calories_burned,activity_status,metric_synced_at,updated_at').eq('user_id', this.ownerId)
+          .select('day,nutrition_origin,calories_kcal,protein_grams,carbs_grams,fat_grams,calories_burned,activity_status,metric_synced_at,updated_at').eq('user_id', this.ownerId)
           .order('day', { ascending: false }).limit(8).abortSignal(controller.signal),
         supabase.from('nutrition_goals').select('effective_from,base_calorie_goal,protein_goal_g,include_activity,source,updated_at')
           .eq('user_id', this.ownerId).order('effective_from', { ascending: false }).abortSignal(controller.signal),
@@ -68,6 +69,7 @@ class NutritionPanel extends HTMLElement {
       const { data, error } = nutrition;
       if (this.request !== controller || !this.isConnected) return;
       if (error || targets.error) throw error || targets.error;
+      this.goals.setGoals(targets.data);
       this.showDays(data, targets.data);
       this.status.textContent = 'Обновляется автоматически при открытии и каждые 15 секунд.';
     } catch {
@@ -93,7 +95,7 @@ class NutritionPanel extends HTMLElement {
     this.hasData = days.length > 0;
     this.rows.replaceChildren();
     if (!days.length) {
-      this.rows.append(text('p', 'Импортов пока нет. После запуска команды здесь появятся показатели из YAZIO.'));
+      this.rows.append(text('p', 'Импортов пока нет. После запуска команды здесь появятся показатели из «Здоровья».'));
       return;
     }
     const latest = days.reduce((value, day) => day.updated_at > value ? day.updated_at : value, '');
@@ -108,21 +110,21 @@ class NutritionPanel extends HTMLElement {
       summary.append(text('span', `${format(m.protein_g)} г белка`)); row.append(summary);
       const values = document.createElement('dl'); values.className = 'nutrition-metrics';
       for (const [label, value, unit] of [
-        ['Углеводы', m.carbs_g, 'г'], ['Жиры', m.fat_g, 'г'], ['Расход активности YAZIO', m.calories_burned, 'ккал'],
-        ['Базовый лимит', m.base_calorie_goal, 'ккал'], ['Лимит с учётом настройки активности', m.adjusted_calorie_goal, 'ккал'],
-        ['Остаток калорий', m.calories_remaining, 'ккал'], ['Цель белка', m.protein_goal_g, 'г'],
-        ['Остаток белка', m.protein_remaining_g, 'г'], ['Съедено минус лимит', m.calorie_balance, 'ккал'],
+        ['Углеводы', m.carbs_g, 'г'], ['Жиры', m.fat_g, 'г'], ['Сожжено активностью', m.calories_burned, 'ккал'],
+        ['Дневная норма без активности', m.base_calorie_goal, 'ккал'], ['Осталось калорий', m.calories_remaining, 'ккал'],
       ]) values.append(text('dt', label), text('dd', value == null ? 'нет данных' : `${format(value)} ${unit}`));
       row.append(values);
       const activityNotes = {
-        unknown: 'Расход за этот день ещё не передан. Новая команда обновляет активность за сегодня и вчера.',
+        unknown: 'Расход за этот день ещё не передан. Запусти «WEDX — Здоровье».',
         no_data: 'Нет записей расхода: проверь доступ к активной энергии. Отсутствие записей не означает нулевой расход.',
         multiple_sources: 'Есть записи других источников активности. Расход не суммируем: в «Здоровье» он рассчитывается с учётом приоритета источников.',
         overlap: 'Записи активности пересекаются или проходят через полночь. Расход требует проверки и не участвует в расчёте лимита.',
+        health_total: 'Активная энергия — дневной итог «Здоровья». При первом запуске сверь его с показателем «Энергия активности» на iPhone. Это не базовый обмен.',
         verified: 'Расход — активная энергия YAZIO без пересекающихся записей, не полный расход организма за день.',
       };
       row.append(text('p', activityNotes[m.activity_status]));
-      row.append(text('p', m.goal_source ? `Лимиты заданы вручную с ${new Date(m.goal_effective_from + 'T12:00:00').toLocaleDateString('ru-RU')}. Активность ${m.include_activity ? 'учитывается' : 'не учитывается'}. Отрицательный остаток означает превышение цели. Баланс относительно лимита не равен физиологическому дефициту.` : 'Лимиты для этого дня не заданы. Сохрани их ниже, чтобы видеть остатки.'));
+      row.append(text('p', m.goal_source ? `Норма сохранена вручную с ${new Date(m.goal_effective_from + 'T12:00:00').toLocaleDateString('ru-RU')}. ${m.include_activity ? 'Остаток = норма + активность − съедено.' : 'Остаток = норма − съедено.'} Минус означает превышение нормы.` : 'Дневная норма для этого дня не задана. Сохрани её ниже, чтобы видеть остаток.'));
+      row.append(text('p', m.nutrition_origin === 'apple-health' ? 'Источник питания: дневные итоги Apple «Здоровье».' : 'Источник питания: записи YAZIO в Apple «Здоровье» (прежняя команда).'));
       const times = document.createElement('p'); times.className = 'metric-times';
       times.textContent = [['calories', 'Калории'], ['protein', 'Белок'], ['carbs', 'Углеводы'], ['fat', 'Жиры'], ['activity', 'Активность']]
         .filter(([key]) => m.metric_synced_at[key]).map(([key, label]) => `${label}: ${new Date(m.metric_synced_at[key]).toLocaleString('ru-RU')}`).join(' · ');

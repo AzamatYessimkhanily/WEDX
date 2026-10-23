@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'WEDX — питание 4'
+NAME = 'WEDX — Здоровье'
 ENDPOINT = 'https://lhwvpjaatsroijgozoro.supabase.co/functions/v1/health-import'
 
 
@@ -63,29 +63,25 @@ def build(token='', mock=False):
     def format_date(input, pattern='yyyy-MM-dd'):
         return add('format.date', 'Formatted Date', WFDate=text(input), WFDateFormatStyle='Custom', WFDateFormat=pattern, WFLocale='en_US_POSIX')
 
-    add('comment', WFCommentActionText='WEDX · Apple «Здоровье» → питание. Калории, белок, углеводы и жиры YAZIO за 8 дней. Активная энергия за сегодня и вчера; прежняя история сохраняется. '
+    add('comment', WFCommentActionText='WEDX · Apple «Здоровье». Дневные итоги за 8 дней: съеденные ккал, белок, углеводы, жиры и активная энергия. '
+        'Используется встроенная группировка «По дням», без перебора каждой записи. Пропуски не заполняются нулями. '
         'Первый запуск — на разблокированном iPhone. Разреши чтение пяти показателей и отправку в свой WEDX. '
-        'В базе сохраняются дневные итоги. Пустые дни не заменяют прежние значения. '
-        'После первого запуска сверь один день с YAZIO. Команда ничего не записывает в «Здоровье».')
+        'После запуска сверь сегодняшний день с «Здоровьем». Дневная норма задаётся отдельно в WEDX. Команда ничего не записывает в «Здоровье».')
     key = add('gettext', 'Text', WFTextActionText=token or 'ВСТАВЬ_КЛЮЧ_ИЗ_WEDX')
     now = add('date', 'Date', WFDateActionMode='Current Date')
     end = format_date(now)
     start_raw = add('adjustdate', 'Adjusted Date', WFDate=text(now), WFAdjustOperation='Subtract',
                     WFDuration=state('WFQuantityFieldValue', {'Magnitude': '7', 'Unit': 'days'}))
     start = format_date(start_raw)
-    activity_start_raw = add('adjustdate', 'Adjusted Date', WFDate=text(now), WFAdjustOperation='Subtract',
-                            WFDuration=state('WFQuantityFieldValue', {'Magnitude': '1', 'Unit': 'days'}))
-    activity_start = format_date(activity_start_raw)
-
     fixtures = None
     if mock:
         today = dt.datetime.now().astimezone().strftime('%Y-%m-%d')
         yesterday = (dt.datetime.now().astimezone() - dt.timedelta(days=1)).strftime('%Y-%m-%d')
         sample = lambda day, value, unit, source='YAZIO': {'date': day + 'T12:00:00', 'value': value, 'unit': unit, 'source': source}
-        data = {'energy': [sample(today, 200.25, 'kcal'), sample(today, 799.75, 'kcal'), sample(today, 999, 'kcal', 'Other App'), sample(yesterday, 500, 'kcal')],
-                'protein': [sample(today, 30, 'g'), sample(today, 45.5, 'g'), sample(today, 0, 'g')],
-                'carbs': [sample(today, 100.25, 'g')], 'fat': [sample(today, 35.75, 'g')],
-                'activity': [{**sample(today, 159.5, 'kcal'), 'end': today + 'T12:10:00'}]}
+        data = {'energy': [sample(today, 1321, 'kcal'), sample(yesterday, 2000, 'kcal')],
+                'protein': [sample(today, 58, 'g'), sample(yesterday, 100, 'g')],
+                'carbs': [sample(today, 121, 'g')], 'fat': [sample(today, 70, 'g')],
+                'activity': [{**sample(today, 90, 'kcal'), 'end': today + 'T12:10:00'}]}
         fixture_text = add('gettext', 'Text', WFTextActionText=json.dumps(data))
         fixtures = add('detect.dictionary', 'Dictionary', WFInput=fixture_text)
 
@@ -99,11 +95,11 @@ def build(token='', mock=False):
                     {'Bounded': True, 'Operator': 4, 'Property': 'Type', 'Removable': False,
                      'Values': {'Enumeration': state('WFStringSubstitutableState', label)}},
                     {'Bounded': True, 'Operator': 1001, 'Property': 'Start Date', 'Removable': True,
-                     'Values': {'Number': '2' if kind == 'activity' else '8', 'Unit': 16}},
+                     'Values': {'Number': '8', 'Unit': 16}},
                 ],
             })
             found = add('filter.health.quantity', 'Health Samples', WFContentItemFilter=filters,
-                        WFContentItemLimitEnabled=False, WFHKSampleFilteringFillMissing=False,
+                        WFContentItemLimitEnabled=False, WFHKSampleFilteringFillMissing=False, WFHKSampleFilteringGroupBy='Day',
                         WFContentItemSortProperty='Start Date', WFContentItemSortOrder='Oldest First')
         loop = str(uuid.uuid4()).upper()
         add('repeat.each', GroupingIdentifier=loop, WFControlFlowMode=0, WFInput=found)
@@ -114,24 +110,12 @@ def build(token='', mock=False):
                 return get_key({'Source': 'source', 'Value': 'value', 'Unit': 'unit', 'Start Date': 'date', 'End Date': 'end'}[name], item)
             return add('properties.health.quantity', name, WFContentItemPropertyName=name, WFInput=item)
 
-        source = detail('Source')
-        match = add('text.match', 'Matches', WFMatchTextPattern='.+' if kind == 'activity' else '(?i)^yazio(?:$|[\\s:–—-])', text=text(source))
-        count = add('count', 'Count', Input=match, WFCountType='Items')
-        condition = str(uuid.uuid4()).upper()
-        add('conditional', GroupingIdentifier=condition, WFControlFlowMode=0, WFCondition=2, WFNumberValue=0,
-            WFInput={'Type': 'Variable', 'Variable': count})
         day = format_date(detail('Start Date'))
         amount = detail('Value')
         unit = detail('Unit')
-        fields = [('date', day, False), ('source', source, False), ('value', amount, True), ('unit', unit, False)]
-        if kind == 'activity':
-            fields.extend([('start', format_date(detail('Start Date'), "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"), False),
-                           ('end', format_date(detail('End Date'), "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"), False)])
-        row = add('dictionary', 'Dictionary', WFItems=dictionary(fields))
+        row = add('dictionary', 'Dictionary', WFItems=dictionary([
+            ('date', day, False), ('value', amount, True), ('unit', unit, False)]))
         add('gettext', 'Text', WFTextActionText=text(row))
-        add('conditional', GroupingIdentifier=condition, WFControlFlowMode=1)
-        add('nothing')
-        add('conditional', GroupingIdentifier=condition, WFControlFlowMode=2)
         results = add('repeat.each', 'Repeat Results', GroupingIdentifier=loop, WFControlFlowMode=2)
         return add('text.combine', 'Combined Text', text=text(results), WFTextSeparator='Custom', WFTextCustomSeparator=',')
 
@@ -141,9 +125,9 @@ def build(token='', mock=False):
     fat = samples('fat', 'Total Fat')
     activity = samples('activity', 'Active Calories')
     payload = add('gettext', 'Text', WFTextActionText=text(
-        '{"version":3,"source":"yazio:apple-health","startDate":"', start,
-        '","endDate":"', end, '","activityStartDate":"', activity_start, '","energySamples":[', energy, '],"proteinSamples":[', protein, '],"carbsSamples":[', carbs,
-        '],"fatSamples":[', fat, '],"activitySamples":[', activity, ']}'))
+        '{"version":4,"source":"apple-health","aggregation":"day","startDate":"', start,
+        '\",\"endDate\":\"', end, '\",\"energyTotals\":[', energy, '],\"proteinTotals\":[', protein,
+        '],\"carbsTotals\":[', carbs, '],\"fatTotals\":[', fat, '],\"activityTotals\":[', activity, ']}'))
     if not mock:
         # File bodies require a direct attachment; wrapping it in text() sends no body.
         response = add('downloadurl', 'Contents of URL', WFURL=ENDPOINT, WFHTTPMethod='POST', WFHTTPBodyType='File',
@@ -151,7 +135,7 @@ def build(token='', mock=False):
                            ('Content-Type', 'application/json', False), ('Authorization', text('Bearer ', key), False),
                        ]))
         message = get_key('message', response)
-        add('notification', WFNotificationActionTitle='WEDX · питание', WFNotificationActionBody=text(message), WFNotificationActionSound=False)
+        add('notification', WFNotificationActionTitle='WEDX · Здоровье', WFNotificationActionBody=text(message), WFNotificationActionSound=False)
     workflow = {
         'WFWorkflowName': 'WEDX проверка формата' if mock else NAME,
         'WFWorkflowClientVersion': '2600.0.4', 'WFWorkflowMinimumClientVersion': 900,
@@ -163,7 +147,7 @@ def build(token='', mock=False):
     if not token and not mock:
         workflow['WFWorkflowImportQuestions'] = [{
             'Category': 'Parameter', 'ActionIndex': 1, 'ParameterKey': 'WFTextActionText',
-            'Text': 'В WEDX открой «Подключения и питание», создай и скопируй ключ. Вставь его сюда (начинается с wedx_).',
+            'Text': 'В WEDX открой «Подключения и питание», скопируй существующий ключ из старой команды или создай новый. Вставь его сюда (начинается с wedx_).',
             'DefaultValue': '',
         }]
     return workflow

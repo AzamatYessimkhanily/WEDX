@@ -1,0 +1,44 @@
+import { SampleImportError } from './samples.js';
+
+const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+  && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+const energyUnits = { kcal: 1, 'ккал': 1, kJ: 1 / 4.184, 'кДж': 1 / 4.184, J: 1 / 4184, cal: 0.001 };
+const massUnits = { g: 1, 'г': 1, mg: 0.001, 'мг': 0.001, kg: 1000, 'кг': 1000 };
+const fail = message => { throw new SampleImportError(message); };
+
+// These are native Find Health Samples / Group by Day results, NOT raw samples.
+// Each day must occur at most once per metric. Never sum duplicate daily totals.
+export function summarizeDailyTotals(body) {
+  if (body?.version !== 4 || body.source !== 'apple-health' || body.aggregation !== 'day'
+    || !validDate(body.startDate) || !validDate(body.endDate)) fail('Неверный формат дневных итогов. Установи «WEDX — Здоровье».');
+  const span = (Date.parse(body.endDate) - Date.parse(body.startDate)) / 86400000;
+  if (span < 0 || span > 30) fail('За один раз можно передать до 31 календарного дня.');
+  const groups = new Map();
+  for (const kind of ['energy', 'protein', 'carbs', 'fat', 'activity']) {
+    const rows = body[kind + 'Totals'];
+    if (!Array.isArray(rows) || rows.length > 32) fail('Нужны дневные итоги «Здоровья». Проверь группировку «По дням» в команде.');
+    const seen = new Set(), units = ['energy', 'activity'].includes(kind) ? energyUnits : massUnits;
+    for (const row of rows) {
+      if (!row || !validDate(row.date) || !Number.isFinite(row.value) || row.value < 0
+        || !Object.hasOwn(units, row.unit)) fail('Неверный дневной итог или единица измерения. Нужны ккал и граммы.');
+      if (seen.has(row.date)) fail('Получено несколько итогов одного дня. Проверь группировку «По дням» в команде.');
+      seen.add(row.date);
+      const value = Math.round(row.value * units[row.unit] * 1000) / 1000;
+      if (value > (units === energyUnits ? 100000 : 10000)) fail('Дневной итог слишком велик. Проверь единицы измерения.');
+      // The query includes one extra day so the oldest accepted day is complete.
+      if (row.date < body.startDate || row.date > body.endDate) continue;
+      const day = groups.get(row.date) || { date: row.date };
+      day[kind] = value; groups.set(row.date, day);
+    }
+  }
+  const days = [], skipped = [];
+  for (const day of [...groups.values()].sort((a, b) => a.date.localeCompare(b.date))) {
+    if (day.energy == null || day.protein == null) { skipped.push(day.date); continue; }
+    const row = { date: day.date, caloriesKcal: day.energy, proteinGrams: day.protein, nutritionOrigin: 'apple-health',
+      activityStatus: day.activity == null ? 'no_data' : 'health_total', caloriesBurned: day.activity ?? null };
+    if (day.carbs != null) row.carbsGrams = day.carbs;
+    if (day.fat != null) row.fatGrams = day.fat;
+    days.push(row);
+  }
+  return { days, skipped };
+}

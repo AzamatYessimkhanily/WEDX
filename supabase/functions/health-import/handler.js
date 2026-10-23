@@ -1,3 +1,4 @@
+import { summarizeDailyTotals } from './totals.js';
 import { validateImport } from './validation.js';
 import { summarizeSamples, SampleImportError } from './samples.js';
 
@@ -33,14 +34,14 @@ export function createHandler(rpc) {
       if (!text.trim()) return emptyBody();
       const input = JSON.parse(text);
       let body, skipped = [];
-      if ([2, 3].includes(input?.version)) {
-        const summary = summarizeSamples(input);
+      if ([2, 3, 4].includes(input?.version)) {
+        const summary = input.version === 4 ? summarizeDailyTotals(input) : summarizeSamples(input);
         skipped = summary.skipped;
         if (!summary.days.length) return reply({ status: 'no_data', records: 0,
-          message: 'Нет дней с обоими показателями YAZIO. Проверь доступ команды к пищевой энергии и белку. Прежние данные WEDX сохранены.' }, 200);
+          message: 'Нет дней с калориями и белком. Проверь доступ команды к пищевой энергии и белку. Прежние данные WEDX сохранены.' }, 200);
         // Each execution is a fresh full snapshot. Retrying is safe because the
         // database replaces daily totals; a later correction can also revert them.
-        body = validateImport({ version: 1, source: input.source, requestId: crypto.randomUUID(), days: summary.days });
+        body = validateImport({ version: 1, source: 'yazio:apple-health', requestId: crypto.randomUUID(), days: summary.days });
       } else {
         if (bytes > 65536) return reply({ error: 'Body too large' }, 413);
         if (input?.version !== 1) return reply({ error: 'unsupported_payload', message: 'Формат отправки команды не поддерживается. Установи актуальную команду WEDX; ключ менять не нужно.' }, 400);
@@ -56,7 +57,7 @@ export function createHandler(rpc) {
           message: status === 401 ? 'Ключ отключён или неверен. Создай новый ключ в WEDX.' : status === 429 ? 'Слишком частые запуски. Повтори через минуту.' : 'Питание не сохранено. Повтори импорт позже.' }, status);
       }
       return reply({ ...data, skippedDays: skipped,
-        message: `Дней обновлено: ${data.records}.${skipped.length ? ` Пропущено дней без одного из показателей: ${skipped.length}.` : ''} Сверь показатели в WEDX с YAZIO.` }, 200);
+        message: `Дней обновлено: ${data.records}.${skipped.length ? ` Пропущено дней без одного из показателей: ${skipped.length}.` : ''} Сверь показатели в WEDX с ${input.version === 4 ? '«Здоровьем»' : 'YAZIO'}.` }, 200);
     } catch (error) {
       if (error instanceof SampleImportError) return reply({ error: 'Invalid health samples', message: error.message }, 400);
       if (error instanceof SyntaxError) return reply({ error: 'invalid_json', message: 'Команда отправила данные в неверном формате JSON. Установи исправленную команду WEDX; ключ менять не нужно.' }, 400);
