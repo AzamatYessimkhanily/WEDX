@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 import { ownerA, ownerB } from '../fixtures.js';
 
 async function connect(page) {
+  await page.addInitScript(() => localStorage.setItem('gym-log-v1', JSON.stringify({
+    hist: {}, bw: [{ d: '2026-10-01', w: 80 }, { d: '2026-10-22', w: 100 }],
+  })));
   const state = {
     owner: ownerA, requests: [], fail: false, hold: null, goals: [], goalWrites: [],
     days: [{ day: '2026-10-21', calories_kcal: 2100, protein_grams: 150, updated_at: '2026-10-22T07:00:00Z' }],
@@ -128,10 +131,14 @@ test('nutrition dashboard exposes seven metrics, hides setup and retains dated g
   await page.getByText('Настроить норму', { exact: true }).click();
   await page.getByLabel('Действует с даты').fill('2026-10-21');
   await page.getByLabel('Дневная норма без активности, ккал').fill('2000');
+  await expect(page.getByLabel('Белок, г на кг веса')).toHaveValue('2');
+  await page.getByLabel('Белок, г на кг веса').fill('1.6');
   await page.getByLabel('Прибавлять активность к дневной норме').check();
   await page.getByRole('button', { name: 'Сохранить норму', exact: true }).click();
   await expect(page.getByText('Норма сохранена.', { exact: true })).toBeVisible();
   expect(state.goalWrites[0].user_id).toBe(ownerA);
+  expect(state.goalWrites[0].protein_per_kg).toBe(1.6);
+  await expect(row.locator('.nutrition-protein')).toContainText('150 / 128 г');
   await expect(row).toContainText('2 000 ккал'); await expect(row).toContainText('100 ккал');
   await expect(row.locator('dt')).toHaveCount(7);
   await expect(page.getByLabel('Цель белка, г', { exact: true })).toHaveCount(0);
@@ -146,4 +153,55 @@ test('nutrition dashboard exposes seven metrics, hides setup and retains dated g
   await page.clock.runFor(15_100);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: 'test-results/nutrition-clean-mobile.png', fullPage: true });
+});
+
+test('calendar selects real days, keeps selection on sync, marks calorie and protein status and navigates months', async ({ page }) => {
+  const state = await connect(page);
+  state.goals = [{ effective_from: '2026-09-01', base_calorie_goal: 2018, include_activity: true, protein_per_kg: 2 }];
+  state.days = Array.from({ length: 8 }, (_, i) => ({ day: `2026-10-${22 - i}`, calories_kcal: 2000, protein_grams: 170,
+    carbs_grams: 210, fat_grams: 70, calories_burned: 200, activity_status: 'health_total', updated_at: '2026-10-22T07:00:00Z' }));
+  state.days[0].protein_grams = 50;
+  state.days[2].calories_kcal = 2500;
+  state.days[3].protein_grams = 120;
+  state.days[4].protein_grams = 120; state.days[4].calories_kcal = 2500;
+  await page.clock.runFor(15_100);
+  const day = date => page.locator(`.nutrition-calendar-day[data-date="${date}"]`);
+  const row = page.locator('.nutrition-day');
+  await expect(day('2026-10-21')).toHaveAccessibleName(/В пределах калорий, белок набран/);
+  await expect(day('2026-10-20')).toHaveAccessibleName(/Перебор калорий/);
+  await expect(day('2026-10-19')).toHaveAccessibleName(/Мало белка/);
+  await expect(day('2026-10-18')).toHaveAccessibleName(/Перебор калорий, мало белка/);
+  await expect(day('2026-10-22')).toHaveAccessibleName(/День ещё идёт/);
+  await expect(day('2026-10-22').locator('.protein-mark')).toHaveCount(0);
+  await expect(day('2026-10-14')).toBeDisabled();
+  await expect(day('2026-10-23')).toBeDisabled();
+  await day('2026-10-19').click();
+  await expect(day('2026-10-19')).toHaveAttribute('aria-pressed', 'true');
+  await expect(row).toHaveAttribute('data-day', '2026-10-19');
+  await expect(row.locator('.nutrition-protein')).toContainText('Недобор 40 г');
+  state.days[3].protein_grams = 165;
+  await page.clock.runFor(15_100);
+  await expect(row).toHaveAttribute('data-day', '2026-10-19');
+  await expect(row.locator('.nutrition-protein')).toContainText('Цель набрана');
+  await expect(day('2026-10-19')).toHaveAccessibleName(/В пределах калорий, белок набран/);
+  await expect(day('2026-10-19')).toBeFocused();
+  await day('2026-10-22').click();
+  await expect(row.locator('.nutrition-protein')).toContainText('50 / 200 г');
+  await expect(row.locator('.nutrition-protein')).toContainText('Ещё 150 г');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: 'test-results/nutrition-calendar-mobile.png', scale: 'css' });
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: 'test-results/nutrition-calendar-narrow.png', scale: 'css' });
+  state.days[7].day = '2026-09-30';
+  await page.clock.runFor(15_100);
+  await page.getByRole('button', { name: 'Предыдущий месяц', exact: true }).click();
+  await expect(day('2026-09-30')).toHaveAttribute('aria-pressed', 'true');
+  await expect(row).toHaveAttribute('data-day', '2026-09-30');
+  await expect(row.locator('.nutrition-protein')).toContainText('добавь замер веса');
+  await expect(page.getByRole('button', { name: 'Предыдущий месяц', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Следующий месяц', exact: true }).click();
+  await expect(row).toHaveAttribute('data-day', '2026-10-22');
 });

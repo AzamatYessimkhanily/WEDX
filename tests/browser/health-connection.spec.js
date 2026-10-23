@@ -95,10 +95,12 @@ test('iPhone setup installs a public template, scopes the secret to nutrition, a
   await expect(page.getByRole('textbox', { name: 'Ключ команды iPhone', exact: true })).toHaveCount(0);
   showNutrition = true;
   await page.getByRole('button', { name: 'Обновить питание', exact: true }).click();
-  await expect(page.locator('.nutrition-day')).toHaveCount(2); // The absent 20th is not manufactured as zero.
-  await expect(page.locator('.nutrition-day').first()).toContainText('153,3 г');
-  await expect(page.locator('.nutrition-day').last()).toContainText('0 г белка');
-  await expect(page.locator('.nutrition-day').first().getByText(/Обновлено /)).toBeVisible();
+  await expect(page.locator('.nutrition-calendar-day:enabled')).toHaveCount(2);
+  await expect(page.locator('.nutrition-day')).toContainText('153,3 г');
+  await expect(page.locator('.nutrition-calendar-day[data-date="2026-10-20"]')).toBeDisabled(); // No manufactured zero.
+  await page.locator('.nutrition-calendar-day[data-date="2026-10-19"]').click();
+  await expect(page.locator('.nutrition-day .nutrition-macros')).toContainText('0 г');
+  await expect(page.locator('.nutrition-day').getByText(/Обновлено /)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.integrations-panel').screenshot({ path: 'test-results/health-connection-mobile.png' });
   await page.getByRole('button', { name: 'Отозвать', exact: true }).click();

@@ -122,6 +122,9 @@ test('native Health imports replace the same day and keep seven-metric provenanc
   assert.equal(rows.length, 1); assert.equal(rows[0].nutrition_origin, 'apple-health');
   assert.equal(Number(rows[0].calories_burned), 90); assert.equal(rows[0].activity_status, 'health_total');
   await db.query('insert into public.nutrition_goals(user_id,effective_from,base_calorie_goal) values($1,$2,2296)', [ownerA,'2026-10-23']);
+  assert.equal(Number((await db.query('select protein_per_kg from public.nutrition_goals where effective_from=$1', ['2026-10-23'])).rows[0].protein_per_kg), 2);
+  await db.query('update public.nutrition_goals set protein_per_kg=1.6 where effective_from=$1', ['2026-10-23']);
+  await assert.rejects(db.query('update public.nutrition_goals set protein_per_kg=0 where effective_from=$1', ['2026-10-23']));
   await identity('', 'service_role');
   await ingest('99999999-4444-4444-8444-444444444444', '2'.repeat(64), [{ ...native[0], caloriesKcal: 1200 }]);
   await identity(ownerA);

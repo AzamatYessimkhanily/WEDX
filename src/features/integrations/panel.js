@@ -8,7 +8,7 @@ async function digest(value) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export function integrationsPanel(user, { open = false } = {}) {
+export function integrationsPanel(user, { open = false, getWeights = () => [] } = {}) {
   const panel = document.createElement(open ? 'section' : 'details');
   panel.className = 'integrations-panel';
   if (!open) panel.append(text('summary', 'Подключения и питание'));
@@ -19,7 +19,7 @@ export function integrationsPanel(user, { open = false } = {}) {
   }
   const settings = document.createElement('details'); settings.className = 'health-settings';
   settings.append(text('summary', 'Настройки'));
-  const nutrition = nutritionPanel(user.id, settings);
+  const nutrition = nutritionPanel(user.id, settings, getWeights);
   panel.append(nutrition);
   if (!open) panel.addEventListener('toggle', () => { if (panel.open) nutrition.refresh(); });
   const section = document.createElement('section'); section.className = 'health-setup';

@@ -451,15 +451,43 @@
   .nutrition-meta>summary{padding:6px 0;font-size:12px;color:var(--muted);cursor:pointer;}
   .nutrition-meta p{font-size:12px;margin:8px 0;line-height:1.45;}
   .nutrition-meta .metric-times{font-size:11px;overflow-wrap:anywhere;}
-  .nutrition-history{border-top:1px solid var(--line);padding-top:12px;}
-  .nutrition-history>summary{font-size:15px;cursor:pointer;}
-  .nutrition-history .nutrition-day{padding-top:12px;margin-top:12px;border-top:1px solid var(--line);}
-  .nutrition-day>summary{display:grid;grid-template-columns:1fr auto;gap:4px 12px;cursor:pointer;font-size:14px;}
-  .nutrition-day>summary strong{grid-row:span 2;align-self:center;font-weight:600;}
-  .nutrition-day>summary span{text-align:right;}
-  .nutrition-day>summary strong:before{content:"▸ ";}
-  .nutrition-day[open]>summary{margin-bottom:12px;}
-  .nutrition-day[open]>summary strong:before{content:"▾ ";}
+  .nutrition-calendar{margin:0 0 22px;padding:0 0 16px;border-bottom:1px solid var(--line);}
+  .nutrition-calendar-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .nutrition-calendar-header strong{font-size:17px;font-weight:600;text-transform:capitalize;}
+  .foot .nutrition-calendar-header button{width:38px;min-height:38px;padding:0;margin:0;font-size:26px;line-height:1;}
+  .nutrition-weekdays,.nutrition-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+  .nutrition-weekdays{margin-bottom:7px;color:var(--muted);font-size:11px;text-align:center;}
+  .foot .nutrition-calendar-day{width:100%;min-width:0;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    margin:0;padding:5px 0;border:1px solid transparent;border-radius:10px;background:var(--ink);color:var(--muted);font-size:15px;line-height:1.1;}
+  .foot .nutrition-calendar-day.met{background:var(--done-wash);color:var(--done);}
+  .foot .nutrition-calendar-day.over{background:var(--danger-wash);color:var(--danger);}
+  .foot .nutrition-calendar-day.protein{background:var(--amber-wash);color:var(--amber);}
+  .foot .nutrition-calendar-day.pending{background:var(--surface-3);color:var(--text);}
+  .foot .nutrition-calendar-day.empty{background:transparent;opacity:.38;cursor:default;}
+  .foot .nutrition-calendar-day[aria-current=date] .calendar-number{text-decoration:underline;text-underline-offset:4px;}
+  .foot .nutrition-calendar-day[aria-pressed=true]{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text);}
+  .nutrition-calendar button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+  .nutrition-calendar-header button:disabled{opacity:.25;cursor:default;}
+  .calendar-marks{display:flex;align-items:center;justify-content:center;gap:4px;height:12px;font-size:10px;font-weight:700;}
+  .calendar-marks i{font-style:normal;}
+  .calendar-marks .protein-mark{color:var(--amber);}
+  .nutrition-calendar-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 12px;padding-top:12px;font-size:11px;}
+  .nutrition-calendar-legend .met{color:var(--done);}
+  .nutrition-calendar-legend .over{color:var(--danger);}
+  .nutrition-calendar-legend .protein{color:var(--amber);}
+  .nutrition-protein{margin:12px 0 3px;padding:12px;background:var(--ink);border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:13px;}
+  .protein-heading{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:5px 10px;margin-bottom:9px;}
+  .protein-heading strong{color:var(--text);font-size:14px;font-weight:600;}
+  .nutrition-protein.low .protein-heading span{color:var(--amber);}
+  .nutrition-protein progress{display:block;appearance:none;-webkit-appearance:none;width:100%;height:5px;border:0;border-radius:99px;overflow:hidden;background:var(--surface-3);accent-color:var(--done);}
+  .nutrition-protein progress::-webkit-progress-bar{background:var(--surface-3);border-radius:99px;}
+  .nutrition-protein progress::-webkit-progress-value{background:var(--done);border-radius:99px;}
+  .nutrition-protein progress::-moz-progress-bar{background:var(--done);border-radius:99px;}
+  .nutrition-protein.low progress{accent-color:var(--amber);}
+  .nutrition-protein.low progress::-webkit-progress-value{background:var(--amber);}
+  .nutrition-protein.low progress::-moz-progress-bar{background:var(--amber);}
+  .nutrition-protein small{display:block;font-size:11px;margin-top:7px;}
+  .nutrition-goals a{color:var(--muted);text-underline-offset:3px;}
   .nutrition-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:3px 0 10px;color:var(--muted);font-size:12px;}
   .foot .nutrition-refresh{width:44px;flex:0 0 44px;font-size:22px;min-width:44px;min-height:44px;padding:4px 12px;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:10px;}
   .nutrition-goals form{display:grid;gap:12px;padding-top:12px;}

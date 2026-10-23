@@ -207,7 +207,7 @@ export function createCloud({ getState, applyState, onChange, toast }) {
       }
       box.append(conflict);
     }
-    box.append(integrationsPanel(user, { open: health }));
+    box.append(integrationsPanel(user, { open: health, getWeights: () => getState().bw || [] }));
     const legacy = node('details'); legacy.append(node('summary', 'Перенос со старой версии'));
     legacy.append(node('p', 'При прежнем адресе история сохраняется автоматически. На новом адресе используй «Копия данных» → файл в старом приложении и восстанови его здесь.'));
     legacy.append(action('Загрузить прежнюю копию GitHub', importGist)); dataSettings.append(legacy);
