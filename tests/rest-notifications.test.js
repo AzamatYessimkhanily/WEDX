@@ -4,7 +4,7 @@ import { createECDH, randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import webpush from 'web-push';
-import { createRestHandler, validSubscription } from '../supabase/functions/rest-notifications/handler.js';
+import { createRestHandler, validSubscription, pushOptions } from '../supabase/functions/rest-notifications/handler.js';
 import { ownerA } from './fixtures.js';
 const device = '11111111-1111-4111-8111-111111111112';
 const ecdh = createECDH('prime256v1'); ecdh.generateKeys();
@@ -18,9 +18,17 @@ test('web push accepts browser key shapes, rejects arbitrary destinations and bu
   }
   assert.equal(validSubscription({...subscription,keys:{...subscription.keys,p256dh:'invalid'}}),false);
   const keys=webpush.generateVAPIDKeys();
-  const encrypted=webpush.generateRequestDetails(subscription,'Private rest reminder',{TTL:30,urgency:'high',vapidDetails:{...keys,subject:'https://azamatyessimkhanily.github.io/WEDX/'}});
-  assert.equal(encrypted.headers.TTL,30); assert.equal(encrypted.headers['Content-Encoding'],'aes128gcm');
-  assert.ok(!encrypted.body.toString().includes('Private rest reminder'));
+  const topics=[];
+  for (const kind of ['rest','test']) {
+    const encrypted=webpush.generateRequestDetails(subscription,'Private rest reminder',pushOptions(kind,keys));
+    assert.equal(encrypted.headers.TTL,30); assert.equal(encrypted.headers['Content-Encoding'],'aes128gcm');
+    assert.ok(!encrypted.body.toString().includes('Private rest reminder'));
+    const topic=encrypted.headers.Topic; topics.push(topic);
+    assert.match(topic,/^[A-Za-z0-9_-]{1,32}$/);
+    assert.equal(topic.length%4,0);
+    assert.equal(Buffer.from(topic,'base64url').toString('base64url'),topic);
+  }
+  assert.notEqual(topics[0],topics[1]);
 });
 
 test('requests require a real user, scope timer writes and keep dispatcher credentials out of config responses', async () => {

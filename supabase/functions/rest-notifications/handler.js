@@ -1,5 +1,10 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ORIGINS = new Set(['https://azamatyessimkhanily.github.io', 'http://127.0.0.1:4173']);
+export function pushOptions(kind, config) {
+  // Canonical base64 topics also pass Apple's stricter Topic validation.
+  return { TTL: 30, urgency: 'high', topic: btoa(kind === 'test' ? 'wedx-test' : 'wedx-rest'),
+    vapidDetails: { subject: 'https://azamatyessimkhanily.github.io/WEDX/', publicKey: config.publicKey, privateKey: config.privateKey } };
+}
 export function validSubscription(value) {
   try {
     const url = new URL(value.endpoint);
