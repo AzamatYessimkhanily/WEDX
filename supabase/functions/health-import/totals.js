@@ -5,6 +5,9 @@ const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.te
 const energyUnits = { kcal: 1, 'ккал': 1, kJ: 1 / 4.184, 'кДж': 1 / 4.184, J: 1 / 4184, cal: 0.001 };
 const massUnits = { g: 1, 'г': 1, mg: 0.001, 'мг': 0.001, kg: 1000, 'кг': 1000 };
 const fail = message => { throw new SampleImportError(message); };
+const labels = { energy: 'Съеденные калории', protein: 'Белок', carbs: 'Углеводы', fat: 'Жиры', activity: 'Активная энергия' };
+// Expose the malformed field, never the request, token or health measurement.
+const shape = value => value == null ? 'пусто' : Array.isArray(value) ? 'список' : typeof value === 'string' ? 'текст' : typeof value === 'number' ? 'число' : 'объект';
 
 // These are native Find Health Samples / Group by Day results, NOT raw samples.
 // Each day must occur at most once per metric. Never sum duplicate daily totals.
@@ -19,8 +22,14 @@ export function summarizeDailyTotals(body) {
     if (!Array.isArray(rows) || rows.length > 32) fail('Нужны дневные итоги «Здоровья». Проверь группировку «По дням» в команде.');
     const seen = new Set(), units = ['energy', 'activity'].includes(kind) ? energyUnits : massUnits;
     for (const row of rows) {
-      if (!row || !validDate(row.date) || !Number.isFinite(row.value) || row.value < 0
-        || !Object.hasOwn(units, row.unit)) fail('Неверный дневной итог или единица измерения. Нужны ккал и граммы.');
+      const label = labels[kind];
+      if (!row || typeof row !== 'object' || Array.isArray(row)) fail(`${label}: вместо дневного итога получен ${shape(row)}.`);
+      if (!validDate(row.date)) fail(`${label}: неверная дата (${shape(row.date)}). Нужен формат ГГГГ-ММ-ДД.`);
+      if (!Number.isFinite(row.value) || row.value < 0) fail(`${label}: неверное значение (${shape(row.value)}). Нужно неотрицательное число.`);
+      if (typeof row.unit !== 'string' || !Object.hasOwn(units, row.unit)) {
+        const unit = typeof row.unit === 'string' ? JSON.stringify(row.unit.slice(0, 40)) : shape(row.unit);
+        fail(`${label}: неизвестная единица ${unit}. Нужны ${units === energyUnits ? 'ккал' : 'граммы'}.`);
+      }
       if (seen.has(row.date)) fail('Получено несколько итогов одного дня. Проверь группировку «По дням» в команде.');
       seen.add(row.date);
       const value = Math.round(row.value * units[row.unit] * 1000) / 1000;

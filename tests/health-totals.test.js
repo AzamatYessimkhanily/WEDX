@@ -42,3 +42,9 @@ test('v4 handler writes corrected full totals with native Health provenance', as
   assert.equal(writes[1].p_days[0].caloriesKcal, 1200);
   assert.notEqual(writes[0].p_request_id, writes[1].p_request_id);
 });
+
+test('invalid phone totals identify the field without echoing health measurements or the payload', () => {
+  assert.throws(() => summarizeDailyTotals(snapshot({ activityTotals: [total(90, 'ккал/день')] })), /Активная энергия: неизвестная единица "ккал\/день"/);
+  assert.throws(() => summarizeDailyTotals(snapshot({ proteinTotals: [total('58321')] })), error => error.message.includes('Белок: неверное значение (текст)') && !error.message.includes('58321'));
+  assert.throws(() => summarizeDailyTotals(snapshot({ fatTotals: [total(70, 'g', null)] })), /Жиры: неверная дата \(пусто\)/);
+});
