@@ -11,16 +11,19 @@ function text(tag, value) { const node = document.createElement(tag); node.textC
 class NutritionPanel extends HTMLElement {
   connectedCallback() {
     if (!this.rows) {
-      this.append(text('h4', 'Показатели из «Здоровья»'));
-      this.append(text('p', 'Семь показателей за день. Данные питания и активности приходят из «Здоровья»; дневная норма задаётся отдельно. Пропуски не считаются нулём.'));
       this.status = text('p', 'Загружаем питание…');
       this.status.setAttribute('role', 'status');
       this.status.className = 'nutrition-status';
       this.rows = document.createElement('div');
-      this.retry = text('button', 'Обновить питание'); this.retry.type = 'button';
+      this.retry = text('button', '↻'); this.retry.type = 'button';
+      this.retry.className = 'nutrition-refresh'; this.retry.setAttribute('aria-label', 'Обновить питание'); this.retry.title = 'Обновить';
       this.retry.onclick = () => this.refresh();
       this.goals = goalsForm(this.ownerId, () => this.refresh());
-      this.append(this.status, this.rows, this.retry, this.goals);
+      const footer = document.createElement('div'); footer.className = 'nutrition-footer';
+      footer.append(text('span', 'Apple Здоровье'), this.retry);
+      this.append(this.status, this.rows, footer);
+      if (this.settingsHost) this.settingsHost.insertBefore(this.goals, this.settingsHost.querySelector('.health-setup'));
+      else this.append(this.goals);
     }
     this.events = new AbortController();
     const options = { signal: this.events.signal };
@@ -48,8 +51,8 @@ class NutritionPanel extends HTMLElement {
     if (!navigator.onLine || document.visibilityState !== 'visible') {
       this.pause();
       if (!navigator.onLine) this.status.textContent = this.hasData
-        ? 'Нет интернета. Показываем последние загруженные данные; обновим после подключения.'
-        : 'Нет интернета. Питание загрузится после подключения.';
+        ? 'Нет интернета · показаны сохранённые данные.'
+        : 'Нет интернета.';
       return;
     }
     if (this.request) return;
@@ -71,11 +74,11 @@ class NutritionPanel extends HTMLElement {
       if (error || targets.error) throw error || targets.error;
       this.goals.setGoals(targets.data);
       this.showDays(data, targets.data);
-      this.status.textContent = 'Обновляется автоматически при открытии и каждые 15 секунд.';
+      this.status.textContent = '';
     } catch {
       if (this.request === controller && this.isConnected) this.status.textContent = this.hasData
-        ? 'Связь с питанием временно недоступна. Показываем последние данные; повторим автоматически.'
-        : 'Не удалось загрузить питание. Повторим автоматически.';
+        ? 'Нет связи · показаны сохранённые данные. Повторим автоматически.'
+        : 'Не удалось загрузить данные. Повторим автоматически.';
     } finally {
       clearTimeout(timeout);
       if (this.request === controller) {
@@ -89,54 +92,84 @@ class NutritionPanel extends HTMLElement {
   }
 
   showDays(days, goals = []) {
-    const signature = JSON.stringify({ days, goals });
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const signature = JSON.stringify({ days, goals, today });
     if (signature === this.signature) return;
     this.signature = signature;
     this.hasData = days.length > 0;
+    const historyOpen = this.rows.querySelector('.nutrition-history')?.open;
+    const openDays = new Set([...this.rows.querySelectorAll('.nutrition-day[open]')].map(row => row.dataset.day));
+    const openMeta = new Set([...this.rows.querySelectorAll('.nutrition-meta[open]')].map(row => row.dataset.day));
     this.rows.replaceChildren();
     if (!days.length) {
-      this.rows.append(text('p', 'Импортов пока нет. После запуска команды здесь появятся показатели из «Здоровья».'));
+      this.rows.append(text('p', 'Пока нет данных. Запусти «WEDX — Здоровье» на iPhone.'));
       return;
     }
-    const latest = days.reduce((value, day) => day.updated_at > value ? day.updated_at : value, '');
-    if (latest) this.rows.append(text('p', `Последнее обновление: ${new Date(latest).toLocaleString('ru-RU')}`));
-    const format = value => value == null ? 'нет данных' : Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
-    for (const day of days) {
+    const format = value => value == null ? '—' : Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+    const dateLabel = day => new Date(`${day}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    const timeLabel = value => new Date(value).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const history = document.createElement('details'); history.className = 'nutrition-history'; history.open = Boolean(historyOpen);
+    history.append(text('summary', 'Прошлые дни'));
+    days.forEach((day, index) => {
       const m = dailyMetrics(day, goals);
-      const row = document.createElement('details'); row.className = 'nutrition-day';
-      const summary = document.createElement('summary');
-      summary.append(text('strong', new Date(`${day.day}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })));
-      summary.append(text('span', `${format(m.calories_consumed)} ккал`));
-      summary.append(text('span', `${format(m.protein_g)} г белка`)); row.append(summary);
-      const values = document.createElement('dl'); values.className = 'nutrition-metrics';
-      for (const [label, value, unit] of [
-        ['Углеводы', m.carbs_g, 'г'], ['Жиры', m.fat_g, 'г'], ['Сожжено активностью', m.calories_burned, 'ккал'],
-        ['Дневная норма без активности', m.base_calorie_goal, 'ккал'], ['Осталось калорий', m.calories_remaining, 'ккал'],
-      ]) values.append(text('dt', label), text('dd', value == null ? 'нет данных' : `${format(value)} ${unit}`));
-      row.append(values);
-      const activityNotes = {
-        unknown: 'Расход за этот день ещё не передан. Запусти «WEDX — Здоровье».',
-        no_data: 'Нет записей расхода: проверь доступ к активной энергии. Отсутствие записей не означает нулевой расход.',
-        multiple_sources: 'Есть записи других источников активности. Расход не суммируем: в «Здоровье» он рассчитывается с учётом приоритета источников.',
-        overlap: 'Записи активности пересекаются или проходят через полночь. Расход требует проверки и не участвует в расчёте лимита.',
-        health_total: 'Активная энергия — дневной итог «Здоровья». При первом запуске сверь его с показателем «Энергия активности» на iPhone. Это не базовый обмен.',
-        verified: 'Расход — активная энергия YAZIO без пересекающихся записей, не полный расход организма за день.',
+      const row = document.createElement(index === 0 ? 'article' : 'details');
+      row.className = 'nutrition-day'; row.dataset.day = day.day;
+      if (index === 0) {
+        const heading = document.createElement('div'); heading.className = 'nutrition-date';
+        heading.append(text('h4', day.day === today ? 'Сегодня' : dateLabel(day.day)));
+        heading.append(text('span', day.day === today ? dateLabel(day.day) : 'Последняя запись'));
+        row.append(heading);
+      } else {
+        row.open = openDays.has(day.day);
+        const summary = document.createElement('summary');
+        summary.append(text('strong', dateLabel(day.day)), text('span', `${format(m.calories_consumed)} ккал`), text('span', `${format(m.protein_g)} г белка`));
+        row.append(summary);
+      }
+      const metric = (label, value, unit, className = '', key = '') => {
+        const cell = document.createElement('div'); cell.className = `nutrition-metric ${className}`.trim();
+        const dt = text('dt', label), dd = document.createElement('dd');
+        const amount = text('span', format(value)); amount.className = 'metric-value'; dd.append(amount);
+        if (value != null) { const suffix = text('span', ` ${unit}`); suffix.className = 'metric-unit'; dd.append(suffix); }
+        if (value == null) { dd.setAttribute('aria-label', 'Нет данных'); dd.title = 'Нет данных'; }
+        if (key && m.metric_synced_at[key] && Date.parse(m.metric_synced_at[key]) < Date.parse(m.last_synced_at)) {
+          const stale = text('small', 'ранее'); stale.title = timeLabel(m.metric_synced_at[key]); cell.append(stale);
+        }
+        cell.prepend(dt, dd); return cell;
       };
-      row.append(text('p', activityNotes[m.activity_status]));
-      row.append(text('p', m.goal_source ? `Норма сохранена вручную с ${new Date(m.goal_effective_from + 'T12:00:00').toLocaleDateString('ru-RU')}. ${m.include_activity ? 'Остаток = норма + активность − съедено.' : 'Остаток = норма − съедено.'} Минус означает превышение нормы.` : 'Дневная норма для этого дня не задана. Сохрани её ниже, чтобы видеть остаток.'));
-      row.append(text('p', m.nutrition_origin === 'apple-health' ? 'Источник питания: дневные итоги Apple «Здоровье».' : 'Источник питания: записи YAZIO в Apple «Здоровье» (прежняя команда).'));
-      const times = document.createElement('p'); times.className = 'metric-times';
-      times.textContent = [['calories', 'Калории'], ['protein', 'Белок'], ['carbs', 'Углеводы'], ['fat', 'Жиры'], ['activity', 'Активность']]
-        .filter(([key]) => m.metric_synced_at[key]).map(([key, label]) => `${label}: ${new Date(m.metric_synced_at[key]).toLocaleString('ru-RU')}`).join(' · ');
-      row.append(times); this.rows.append(row);
-    }
+      const energy = document.createElement('dl'); energy.className = 'nutrition-energy';
+      energy.append(metric('Съедено', m.calories_consumed, 'ккал', '', 'calories'),
+        metric(m.calories_remaining < 0 ? 'Сверх нормы' : 'Осталось', m.calories_remaining == null ? null : Math.abs(m.calories_remaining), 'ккал', 'nutrition-remaining'),
+        metric('Активность', m.calories_burned, 'ккал', '', 'activity'));
+      if (m.calories_remaining < 0) energy.classList.add('over-goal');
+      const macros = document.createElement('dl'); macros.className = 'nutrition-macros';
+      macros.append(metric('Белки', m.protein_g, 'г', '', 'protein'), metric('Жиры', m.fat_g, 'г', '', 'fat'), metric('Углеводы', m.carbs_g, 'г', '', 'carbs'));
+      const goal = document.createElement('dl'); goal.className = 'nutrition-norm';
+      goal.append(metric('Дневная норма', m.base_calorie_goal, 'ккал'));
+      row.append(energy, macros, goal);
+      const meta = document.createElement('details'); meta.className = 'nutrition-meta'; meta.dataset.day = day.day; meta.open = openMeta.has(day.day);
+      meta.append(text('summary', day.updated_at ? `Обновлено ${timeLabel(day.updated_at)}` : 'О данных'));
+      const activityNotes = {
+        unknown: 'Активность ещё не передана.', no_data: 'Нет данных об активности.',
+        multiple_sources: 'Расход не определён: несколько источников активности.', overlap: 'Расход не определён: записи активности пересекаются.',
+        health_total: 'Активность: дневной итог «Здоровья».', verified: 'Активность: записи YAZIO.',
+      };
+      meta.append(text('p', activityNotes[m.activity_status]));
+      meta.append(text('p', m.goal_source ? `Норма без активности задана вручную с ${dateLabel(m.goal_effective_from)}. ${m.include_activity ? 'Остаток = норма + активность − съедено.' : 'Остаток = норма − съедено.'}` : 'Дневная норма не задана.'));
+      const times = text('p', [['calories', 'Калории'], ['protein', 'Белок'], ['carbs', 'Углеводы'], ['fat', 'Жиры'], ['activity', 'Активность']]
+        .filter(([key]) => m.metric_synced_at[key]).map(([key, label]) => `${label}: ${timeLabel(m.metric_synced_at[key])}`).join(' · '));
+      times.className = 'metric-times'; meta.append(times); row.append(meta);
+      if (index === 0) this.rows.append(row); else history.append(row);
+    });
+    if (days.length > 1) this.rows.append(history);
   }
+
 }
 
 customElements.define('wedx-nutrition', NutritionPanel);
 
-export function nutritionPanel(userId) {
+export function nutritionPanel(userId, settingsHost = null) {
   const panel = document.createElement('wedx-nutrition');
-  panel.ownerId = userId;
+  panel.ownerId = userId; panel.settingsHost = settingsHost;
   return panel;
 }

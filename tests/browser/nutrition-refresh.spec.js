@@ -31,7 +31,7 @@ async function connect(page) {
   await page.goto('/?view=health#connect=' + 'a'.repeat(64));
   await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
   await expect(page.locator('.nutrition-day')).toContainText('2 100 ккал');
-  await expect(page.locator('.nutrition-status')).toContainText('автоматически');
+  await expect(page.locator('.nutrition-status')).toBeHidden();
   return state;
 }
 
@@ -41,7 +41,7 @@ test('nutrition loads without a button and picks up new imports and corrections 
   state.days[0].protein_grams = 160;
   await page.clock.runFor(15_100);
   await expect(page.locator('.nutrition-day')).toContainText('2 300 ккал');
-  await expect(page.locator('.nutrition-day')).toContainText('160 г белка');
+  await expect(page.locator('.nutrition-day')).toContainText('160 г');
   state.days[0].calories_kcal = 2000; // Correcting an existing day replaces its value.
   await page.clock.runFor(15_100);
   await expect(page.locator('.nutrition-day')).toHaveCount(1);
@@ -53,7 +53,7 @@ test('offline and server failures preserve displayed days and recover automatica
   const state = await connect(page);
   state.fail = true;
   await page.clock.runFor(15_100);
-  await expect(page.locator('.nutrition-status')).toContainText('повторим автоматически');
+  await expect(page.locator('.nutrition-status')).toContainText('Повторим автоматически');
   await expect(page.locator('.nutrition-day')).toContainText('2 100 ккал');
   await context.setOffline(true);
   await expect(page.locator('.nutrition-status')).toContainText('Нет интернета');
@@ -63,7 +63,7 @@ test('offline and server failures preserve displayed days and recover automatica
   state.fail = false; state.days[0].calories_kcal = 2450;
   await context.setOffline(false);
   await expect(page.locator('.nutrition-day')).toContainText('2 450 ккал');
-  await expect(page.locator('.nutrition-status')).toContainText('автоматически');
+  await expect(page.locator('.nutrition-status')).toBeHidden();
 });
 
 test('returning to the app refreshes immediately and background polling pauses', async ({ page }) => {
@@ -78,14 +78,14 @@ test('returning to the app refreshes immediately and background polling pauses',
   expect(state.requests.length).toBe(requests);
   state.days[0].protein_grams = 175;
   await page.evaluate(() => { window.testVisibility = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
-  await expect(page.locator('.nutrition-day')).toContainText('175 г белка');
+  await expect(page.locator('.nutrition-day')).toContainText('175 г');
   state.days[0].protein_grams = 180;
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(page.locator('.nutrition-day')).toContainText('180 г белка');
+  await expect(page.locator('.nutrition-day')).toContainText('180 г');
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   state.days[0].protein_grams = 185;
   await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
-  await expect(page.locator('.nutrition-day')).toContainText('185 г белка');
+  await expect(page.locator('.nutrition-day')).toContainText('185 г');
 });
 
 test('an old request cannot overwrite another account after the panel is replaced', async ({ page }) => {
@@ -113,15 +113,19 @@ test('an old request cannot overwrite another account after the panel is replace
 });
 
 
-test('expanded day shows macros, unknown activity and dated manual goals without horizontal overflow', async ({ page }) => {
+test('nutrition dashboard exposes seven metrics, hides setup and retains dated goal controls on mobile', async ({ page }) => {
   const state = await connect(page);
   state.days[0] = { ...state.days[0], carbs_grams: 190.5, fat_grams: 45.25,
     calories_burned: 200, activity_status: 'health_total', nutrition_origin: 'apple-health', metric_synced_at: { carbs: '2026-10-22T07:00:00Z' } };
   await page.clock.runFor(15_100);
-  const row = page.locator('.nutrition-day'); await row.locator('summary').click();
+  const row = page.locator('.nutrition-day');
+  await expect(row.locator('dt')).toHaveCount(7);
+  for (const metric of await row.locator('dt').all()) await expect(metric).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Установить команду', exact: true })).toBeHidden();
   await expect(row).toContainText('190,5 г'); await expect(row).toContainText('45,3 г');
-  await expect(row).toContainText('200 ккал'); await expect(row).toContainText('Дневная норма для этого дня не задана');
-  await page.getByText('Дневная норма калорий', { exact: true }).click();
+  await expect(row).toContainText('200 ккал'); await expect(row).toContainText('Дневная норма не задана');
+  await page.getByText('Настройки', { exact: true }).click();
+  await page.getByText('Настроить норму', { exact: true }).click();
   await page.getByLabel('Действует с даты').fill('2026-10-21');
   await page.getByLabel('Дневная норма без активности, ккал').fill('2000');
   await page.getByLabel('Прибавлять активность к дневной норме').check();
@@ -129,15 +133,17 @@ test('expanded day shows macros, unknown activity and dated manual goals without
   await expect(page.getByText('Норма сохранена.', { exact: true })).toBeVisible();
   expect(state.goalWrites[0].user_id).toBe(ownerA);
   await expect(row).toContainText('2 000 ккал'); await expect(row).toContainText('100 ккал');
-  await expect(row.locator('dt')).toHaveCount(5); // Plus calories and protein in the summary = seven.
-  await expect(row).toContainText('дневные итоги Apple');
+  await expect(row.locator('dt')).toHaveCount(7);
   await expect(page.getByLabel('Цель белка, г', { exact: true })).toHaveCount(0);
   state.days[0].activity_status = 'multiple_sources'; state.days[0].calories_burned = null;
   await page.clock.runFor(15_100);
-  await expect(row).toContainText('Есть записи других источников');
+  await expect(row).toContainText('несколько источников активности');
   await expect(row).not.toContainText('2 200 ккал');
-  await row.locator('summary').click();
+  await page.getByText('Настройки', { exact: true }).click();
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await row.screenshot({ path: 'test-results/nutrition-expanded.png' });
+  state.days[0].activity_status = 'health_total'; state.days[0].calories_burned = 200;
+  await page.clock.runFor(15_100);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: 'test-results/nutrition-clean-mobile.png', fullPage: true });
 });

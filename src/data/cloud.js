@@ -154,7 +154,7 @@ export function createCloud({ getState, applyState, onChange, toast }) {
       connect.disabled = connecting; section.append(connect);
     } else {
       const help = node('details'); help.open = true; help.append(node('summary', 'Подключение устройства'));
-      help.append(node('p', 'Скопируй личную ссылку из чата и вставь её сюда. Так подключится именно это приложение, даже если ты открываешь его через иконку на iPhone.'));
+      help.append(node('p', 'Вставь личную ссылку WEDX для подключения истории.'));
       const form = node('form'); form.className = 'device-link-form';
       const input = node('input'); input.type = 'url'; input.required = true;
       input.autocomplete = 'off'; input.autocapitalize = 'none'; input.spellcheck = false;
@@ -175,7 +175,7 @@ export function createCloud({ getState, applyState, onChange, toast }) {
         }
         rememberConnectionToken(token); input.value = ''; connectDevice();
       };
-      help.append(form, node('p', 'Логин и пароль не нужны. Подключение сохранится на этом устройстве.'));
+      help.append(form);
       section.append(help);
     }
     if (connectionMessage) {
@@ -187,13 +187,14 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     const box = node('div'); box.className = 'cloudbox'; box.dataset.cloudBox = '';
     box.dataset.healthPage = String(health);
     const status = node('p', labels[currentStatus]); status.dataset.syncStatus = ''; status.setAttribute('role', 'status');
-    box.append(node('h3', health ? 'Apple Health' : 'Данные и подключения'));
-    if (health) box.append(node('p', 'YAZIO → «Здоровье» → WEDX. Питание и активность передаются командой на iPhone.'));
-    box.append(status);
+    box.append(node('h3', health ? 'Питание' : 'Данные и подключения'));
+    const dataSettings = health && user ? node('details') : box;
+    if (dataSettings !== box) { dataSettings.className = 'device-settings'; dataSettings.append(node('summary', 'Данные устройства')); }
+    dataSettings.append(status);
     if (!backendConfigured) box.append(node('p', 'Тренировки работают локально. Облачная синхронизация появится после настройки проекта.'));
     else box.append(deviceConnection());
     if (user) {
-      box.append(action('Синхронизировать', () => engine.sync()));
+      dataSettings.append(action('Синхронизировать', () => engine.sync()));
       const conflict = node('div'); conflict.dataset.syncConflict = ''; conflict.hidden = currentStatus !== 'conflict';
       conflict.append(node('p', 'Перед заменой сохрани обе копии. Автоматически объединять разные правки пока нельзя.'));
       conflict.append(action('Скачать копию устройства', () => download(getState(), 'wedx-device.json')));
@@ -209,7 +210,8 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     box.append(integrationsPanel(user, { open: health }));
     const legacy = node('details'); legacy.append(node('summary', 'Перенос со старой версии'));
     legacy.append(node('p', 'При прежнем адресе история сохраняется автоматически. На новом адресе используй «Копия данных» → файл в старом приложении и восстанови его здесь.'));
-    legacy.append(action('Загрузить прежнюю копию GitHub', importGist)); box.append(legacy);
+    legacy.append(action('Загрузить прежнюю копию GitHub', importGist)); dataSettings.append(legacy);
+    if (dataSettings !== box) box.querySelector('.health-settings').append(dataSettings);
     return box;
   }
   return {

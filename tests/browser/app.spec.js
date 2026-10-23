@@ -128,7 +128,7 @@ test('personal device link persists, refreshes automatically and keeps account h
   expect(states.get(ownerA).snapshot.hist['mon|0']).toHaveLength(2);
   expect(errors).toEqual([]);
   await page.locator('summary').filter({ hasText: 'Подключения и питание' }).click();
-  await expect(page.getByRole('heading', { name: 'Apple «Здоровье»', exact: true })).toBeVisible();
+  await expect(page.getByText('Настройки', { exact: true })).toBeVisible();
   await page.locator('[data-cloud-box]').screenshot({ path: 'test-results/connections-mobile.png' });
 });
 

@@ -3,8 +3,8 @@ function text(tag, value) { const n = document.createElement(tag); n.textContent
 export function goalsForm(ownerId, onSave) {
   const details = document.createElement('details');
   details.className = 'nutrition-goals';
-  details.append(text('summary', 'Дневная норма калорий'));
-  details.append(text('p', 'Скопируй дневную норму без активности из YAZIO. Она не передаётся через «Здоровье» и не равна базовому обмену. Если изменишь норму в YAZIO, обнови её здесь.'));
+  details.append(text('summary', 'Настроить норму'));
+  details.append(text('p', 'Норма без активности из YAZIO. Обновляется вручную.'));
   const form = document.createElement('form');
   const fields = {};
   for (const [name, label, type] of [['effective_from', 'Действует с даты', 'date'], ['base_calorie_goal', 'Дневная норма без активности, ккал', 'number']]) {
@@ -17,7 +17,6 @@ export function goalsForm(ownerId, onSave) {
   const activityLabel = text('label', 'Прибавлять активность к дневной норме');
   const activity = document.createElement('input'); activity.type = 'checkbox'; activity.name = 'include_activity';
   activityLabel.prepend(activity); form.append(activityLabel);
-  form.append(text('p', 'Настройка действует с выбранной даты. Более ранние дни сохранят прежнюю норму.'));
   const save = text('button', 'Сохранить норму'); save.type = 'submit';
   const status = text('p', ''); status.setAttribute('role','status'); form.append(save,status);
   let goals = [], dirty = false;

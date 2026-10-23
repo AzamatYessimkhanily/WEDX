@@ -13,7 +13,7 @@ test('Apple Health is reachable on a rest day before connecting the device', asy
   await page.locator('#days button').filter({ hasText: 'Чт' }).click();
   await expect(page.getByText('День отдыха', { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 320, height: 740 });
-  await page.getByRole('button', { name: 'Apple Health', exact: true }).click();
+  await page.getByRole('button', { name: 'Питание', exact: true }).click();
   await expect(page.getByText('Подключить Apple Health', { exact: true })).toBeVisible();
   await expect(page.getByText(/Сначала подключи этот iPhone/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Создать ключ для iPhone' })).toHaveCount(0);
@@ -21,14 +21,14 @@ test('Apple Health is reachable on a rest day before connecting the device', asy
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Тренировка', exact: true }).click();
   await expect(page.getByText('День отдыха', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Apple Health', exact: true }).click();
+  await page.getByRole('button', { name: 'Питание', exact: true }).click();
   await page.reload();
   await expect(page.getByText(/Сначала подключи этот iPhone/)).toBeVisible();
   await page.screenshot({ path: 'test-results/health-unlinked-mobile.png' });
   await page.getByRole('button', { name: 'Тренировка', exact: true }).click();
   await page.getByRole('button', { name: 'Прогресс', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Обзор', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Apple Health', exact: true }).click();
+  await page.getByRole('button', { name: 'Питание', exact: true }).click();
   await expect(page.getByText(/Сначала подключи этот iPhone/)).toBeVisible();
 });
 
@@ -64,14 +64,17 @@ test('iPhone setup installs a public template, scopes the secret to nutrition, a
   expect(await personalLink.evaluate(input => input.validity.customError)).toBe(true);
   await personalLink.fill('https://azamatyessimkhanily.github.io/WEDX/?view=health#connect=' + 'a'.repeat(64));
   await page.getByRole('button', { name: 'Подключить это устройство', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Apple Health', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Питание', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page).toHaveURL(/\?view=health$/);
-  await expect(page.getByText(/Импортов пока нет/)).toBeVisible();
+  await expect(page.getByText(/Пока нет данных/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Установить команду', exact: true })).toBeHidden();
+  await page.getByText('Настройки', { exact: true }).click();
   const install = page.getByRole('link', { name: 'Установить команду', exact: true });
   await expect(install).toHaveAttribute('href', 'https://www.icloud.com/shortcuts/6df804e55175488686de84f1b0d80a9f');
   await expect(install).not.toHaveAttribute('download');
   const run = page.getByRole('link', { name: 'Запустить на iPhone', exact: true });
   expect(new URL(await run.getAttribute('href')).searchParams.get('name')).toBe('WEDX — Здоровье');
+  await page.getByText('Как подключить', { exact: true }).click();
   await page.getByText('Скачать команду файлом', { exact: true }).click();
   const download = page.getByRole('link', { name: 'Скачать .shortcut', exact: true });
   await expect(download).toHaveAttribute('download', 'WEDX — Здоровье.shortcut');
@@ -93,9 +96,9 @@ test('iPhone setup installs a public template, scopes the secret to nutrition, a
   showNutrition = true;
   await page.getByRole('button', { name: 'Обновить питание', exact: true }).click();
   await expect(page.locator('.nutrition-day')).toHaveCount(2); // The absent 20th is not manufactured as zero.
-  await expect(page.locator('.nutrition-day').first()).toContainText('153,3 г белка');
+  await expect(page.locator('.nutrition-day').first()).toContainText('153,3 г');
   await expect(page.locator('.nutrition-day').last()).toContainText('0 г белка');
-  await expect(page.getByText(/Последнее обновление:/)).toBeVisible();
+  await expect(page.locator('.nutrition-day').first().getByText(/Обновлено /)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.integrations-panel').screenshot({ path: 'test-results/health-connection-mobile.png' });
   await page.getByRole('button', { name: 'Отозвать', exact: true }).click();
