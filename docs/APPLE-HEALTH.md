@@ -52,7 +52,7 @@
 }
 ```
 
-Числа иллюстрируют формат, не рекомендуют питание. Один итог на дату на показатель. Повторяющиеся даты отклоняются целиком, не суммируются. До 31 принятого дня и 32 входящих итогов на показатель (с дополнительным крайним днём). Проверяются диапазоны, календарные даты, единицы и конечность чисел; значения нормализуются в ккал/г с точностью 0.001.
+Числа иллюстрируют формат, не рекомендуют питание. Один итог на дату на показатель. Повторяющиеся даты отклоняются целиком, не суммируются. До 31 принятого дня и 32 входящих итогов на показатель (с дополнительным крайним днём). Проверяются диапазоны, календарные даты, единицы и конечность чисел; значения нормализуются в ккал/г с точностью 0.001. HealthKit `Cal` (большая калория) и Foundation `kCal` принимаются как ккал; `cal` с маленькой буквы остаётся 0.001 ккал. Регистр не меняется, чтобы не внести ошибку в 1000 раз. При невалидном поле уведомление указывает показатель, поле и единицу, не раскрывая запрос или ключ.
 
 В БД сохранён исторический ключ `source = yazio:apple-health`, чтобы обновлять прежнюю строку дня без дублей. **Происхождение V4 задаётся отдельно: `nutrition_origin = apple-health`, `activity_status = health_total`.** Старые версии используют `nutrition_origin = yazio`; прежние проверки raw-активности остаются совместимыми. Статус `health_total` означает результат группировки Health, а не независимую проверку медицинской точности.
 
@@ -73,3 +73,5 @@ npm run check
 23.10.2026: подписанный шаблон успешно импортирован на Mac, проверен вопрос о ключе и опубликован с заполнителем. Автоматические тесты проверяют контракт, миграцию, повторы, исправления, пропуски, единицы, RLS и семь полей интерфейса. Реальное выполнение Health-запросов и совпадение цифр требуют запуска пользователем на iPhone.
 
 Источники: [YAZIO и Apple Health](https://help.yazio.com/hc/en-us/articles/360018833998-Yazio-and-Apple-Health), [изменение целей YAZIO](https://help.yazio.com/hc/en-us/articles/360002474498-Why-do-my-calorie-goal-and-nutrient-goals-change), [поиск и фильтрация Apple](https://support.apple.com/guide/shortcuts/intro-to-find-and-filter-actions-apd3c845e881/ios), [подписание Apple](https://support.apple.com/guide/shortcuts-mac/run-shortcuts-from-the-command-line-apd455c82f02/mac).
+
+Единицы энергии: [HealthKit largeCalorie](https://developer.apple.com/documentation/healthkit/hkunit/largecalorie()), [HealthKit smallCalorie](https://developer.apple.com/documentation/healthkit/hkunit/smallcalorie()), [Foundation UnitEnergy](https://developer.apple.com/documentation/foundation/unitenergy).

@@ -48,3 +48,15 @@ test('invalid phone totals identify the field without echoing health measurement
   assert.throws(() => summarizeDailyTotals(snapshot({ proteinTotals: [total('58321')] })), error => error.message.includes('Белок: неверное значение (текст)') && !error.message.includes('58321'));
   assert.throws(() => summarizeDailyTotals(snapshot({ fatTotals: [total(70, 'g', null)] })), /Жиры: неверная дата \(пусто\)/);
 });
+
+test('HealthKit large calories retain their magnitude while small calories convert separately', () => {
+  for (const unit of ['kcal', 'kCal', 'Cal']) {
+    const row = summarizeDailyTotals(snapshot({ energyTotals: [total(1321, unit)], activityTotals: [total(90, unit)] })).days[0];
+    assert.equal(row.caloriesKcal, 1321); assert.equal(row.caloriesBurned, 90);
+  }
+  const small = summarizeDailyTotals(snapshot({ activityTotals: [total(90000, 'cal')] })).days[0];
+  assert.equal(small.caloriesBurned, 90);
+  const belowOne = summarizeDailyTotals(snapshot({ activityTotals: [total(90, 'cal')] })).days[0];
+  assert.equal(belowOne.caloriesBurned, 0.09);
+  assert.throws(() => summarizeDailyTotals(snapshot({ activityTotals: [total(90, 'CAL')] })), /неизвестная единица/);
+});

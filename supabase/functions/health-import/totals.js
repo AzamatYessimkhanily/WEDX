@@ -2,7 +2,9 @@ import { SampleImportError } from './samples.js';
 
 const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
   && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
-const energyUnits = { kcal: 1, 'ккал': 1, kJ: 1 / 4.184, 'кДж': 1 / 4.184, J: 1 / 4184, cal: 0.001 };
+// HealthKit largeCalorie (Cal) equals kcal; lowercase cal is 1/1000 kcal.
+// Keep case-sensitive matching: lowercasing would silently corrupt activity.
+const energyUnits = { kcal: 1, kCal: 1, Cal: 1, 'ккал': 1, kJ: 1 / 4.184, 'кДж': 1 / 4.184, J: 1 / 4184, cal: 0.001 };
 const massUnits = { g: 1, 'г': 1, mg: 0.001, 'мг': 0.001, kg: 1000, 'кг': 1000 };
 const fail = message => { throw new SampleImportError(message); };
 const labels = { energy: 'Съеденные калории', protein: 'Белок', carbs: 'Углеводы', fat: 'Жиры', activity: 'Активная энергия' };

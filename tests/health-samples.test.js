@@ -106,3 +106,8 @@ test('a shorter activity window preserves older activity while still correcting 
     assert.throws(() => summarizeSamples(v3({ activityStartDate })));
   }
 });
+
+test('legacy samples also distinguish large Cal from small cal', () => {
+  assert.equal(summarizeSamples(payload({ energySamples: [sample('2026-10-21', 90, 'Cal')] })).days[0].caloriesKcal, 90);
+  assert.equal(summarizeSamples(payload({ energySamples: [sample('2026-10-21', 90, 'cal')] })).days[0].caloriesKcal, 0.09);
+});
