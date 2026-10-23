@@ -175,3 +175,52 @@ test('expired pushes are dropped and revoked devices cancel both rest and test d
   assert.equal((await db.query('select * from public.claim_rest_push()')).rows.length,0);
   assert.equal((await db.query('select enabled from public.rest_push_devices')).rows[0].enabled,false);
 });
+
+const coachClient='https://chatgpt.com/oauth/client.json', coachRedirect='https://chatgpt.com/connector_platform_oauth_redirect';
+const coachResource='https://example.com/functions/v1/wedx-coach/mcp', coachChallenge='A'.repeat(43);
+async function coachRequest() {
+  return (await db.query('select public.coach_begin_authorization($1,$2,$3,$4,$5) id',
+    [coachClient,coachRedirect,coachResource,'client-state',coachChallenge])).rows[0].id;
+}
+let coachGrant;
+test('coach credentials and approval RPCs are inaccessible to app users; pairing codes are one use and bind the owner', async () => {
+  await identity(ownerA);
+  for(const table of ['coach_pairing_codes','coach_oauth_requests','coach_oauth_grants','coach_used_refresh_tokens']) await assert.rejects(db.query(`select * from public.${table}`));
+  await assert.rejects(coachRequest());
+  await identity('', 'service_role');
+  for (const table of ['workout_state','nutrition_daily','nutrition_goals']) {
+    await db.query(`select * from public.${table} where user_id=$1`,[ownerA]);
+    await assert.rejects(db.query(`delete from public.${table} where false`));
+  }
+  await db.query('select public.coach_create_pairing($1,$2)',[ownerA,'3'.repeat(64)]);
+  const request=await coachRequest();
+  const approve=async pair=>(await db.query('select public.coach_approve_authorization($1,null,$2,$3) result',[request,pair,'4'.repeat(64)])).rows[0].result;
+  assert.deepEqual(await approve('wrong'),{error:'invalid_pairing_code'});
+  assert.equal((await approve('3'.repeat(64))).state,'client-state');
+  assert.equal((await db.query('select user_id from public.coach_oauth_requests where id=$1',[request])).rows[0].user_id,ownerA);
+  const second=await coachRequest();
+  assert.equal((await db.query('select public.coach_approve_authorization($1,null,$2,$3) result',[second,'3'.repeat(64),'5'.repeat(64)])).rows[0].result.error,'invalid_pairing_code');
+});
+test('coach code exchange enforces PKCE, client, redirect and audience before consuming a code; access can be revoked', async () => {
+  await identity('', 'service_role');
+  const args=['4'.repeat(64),coachClient,coachRedirect,coachResource,coachChallenge,'6'.repeat(64),'7'.repeat(64)];
+  const exchange=async a=>(await db.query('select public.coach_exchange_code($1,$2,$3,$4,$5,$6,$7) result',a)).rows[0].result;
+  for(const i of [1,2,3,4]) { const bad=[...args];bad[i]='wrong';assert.deepEqual(await exchange(bad),{error:'invalid_grant'}); }
+  const absent=[...args];absent[3]=null;assert.deepEqual(await exchange(absent),{error:'invalid_grant'});
+  coachGrant=(await exchange(args)).grant_id;assert.ok(coachGrant);
+  assert.deepEqual(await exchange(args),{error:'invalid_grant'});
+  assert.equal((await db.query('select public.coach_read_access($1,$2) result',['6'.repeat(64),coachResource])).rows[0].result.user_id,ownerA);
+  assert.equal((await db.query('select public.coach_read_access($1,$2) result',['6'.repeat(64),'wrong'])).rows[0].result.error,'invalid_token');
+  await identity(ownerB);await assert.rejects(db.query('update public.coach_oauth_grants set revoked_at=now()'));
+});
+test('coach refresh rotates tokens, invalidates previous access and revokes the grant if a refresh token is replayed', async () => {
+  await identity('', 'service_role');
+  const refresh=async(client=coachClient)=>(await db.query('select public.coach_refresh_token($1,$2,$3,$4,$5) result',
+    ['7'.repeat(64),client,coachResource,'8'.repeat(64),'9'.repeat(64)])).rows[0].result;
+  assert.deepEqual(await refresh('wrong'),{error:'invalid_grant'});
+  assert.equal((await refresh()).grant_id,coachGrant);
+  assert.equal((await db.query('select public.coach_read_access($1,$2) result',['6'.repeat(64),coachResource])).rows[0].result.error,'invalid_token');
+  assert.equal((await db.query('select public.coach_read_access($1,$2) result',['8'.repeat(64),coachResource])).rows[0].result.user_id,ownerA);
+  assert.deepEqual(await refresh(),{error:'invalid_grant'});
+  assert.equal((await db.query('select public.coach_read_access($1,$2) result',['8'.repeat(64),coachResource])).rows[0].result.error,'invalid_token');
+});

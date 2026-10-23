@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const base = env.VITE_BASE_PATH || '/';
-  return { base, build: { target: 'safari16' }, plugins: [{
+  return { base, build: { target: 'safari16', rollupOptions: { input: { main: 'index.html', coach: 'coach.html' } } }, plugins: [{
     name: 'wedx-offline',
     generateBundle(_options, bundle) {
       const files = [...new Set([...Object.keys(bundle), 'index.html', 'manifest.webmanifest', 'icon-180.png'])];

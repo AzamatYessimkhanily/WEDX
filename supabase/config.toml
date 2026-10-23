@@ -3,3 +3,7 @@ project_id = "wedx"
 [functions.health-import]
 # This endpoint authenticates a narrowly scoped, revocable integration token itself.
 verify_jwt = false
+
+[functions.wedx-coach]
+# MCP uses its own revocable OAuth tokens; only management uses Supabase sessions.
+verify_jwt = false

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#132430">
+  <title>Подключить WEDX к ChatGPT</title>
+</head>
+<body class="coach-consent-page">
+  <main class="coach-consent">
+    <div class="coach-brand">WEDX × ChatGPT</div>
+    <h1>Твои данные для тренера</h1>
+    <p>ChatGPT сможет читать тренировки, замеры веса, питание и нормы из WEDX.</p>
+    <p class="coach-muted">Изменять или удалять записи это подключение не позволяет.</p>
+    <form id="coach-consent-form">
+      <label for="coach-code">Одноразовый код из WEDX</label>
+      <input id="coach-code" type="password" required pattern="[A-Za-z0-9_-]{32}" autocomplete="off" spellcheck="false">
+      <p class="coach-muted">Открой WEDX → «Питание» → «ChatGPT — тренер» → «Создать код подключения».</p>
+      <button id="coach-allow" type="submit" disabled>Разрешить чтение</button>
+      <button id="coach-deny" type="button" disabled>Отмена</button>
+    </form>
+    <p id="coach-status" role="status">Проверяем подключение…</p>
+  </main>
+  <script type="module" src="/src/features/coach/consent.js"></script>
+</body>
+</html>

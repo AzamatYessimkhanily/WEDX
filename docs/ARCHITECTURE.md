@@ -13,6 +13,8 @@ flowchart LR
   Health --> Shortcut[Команда iPhone]
   Shortcut --> Edge[health-import]
   Edge --> DB
+  ChatGPT --> Coach[wedx-coach MCP · чтение]
+  Coach --> DB
 ```
 
 ## Границы кода
@@ -26,6 +28,8 @@ flowchart LR
 - `src/features/integrations`: список подключений, выпуск и отзыв ключей, отображение питания.
 - `supabase/migrations`: схема PostgreSQL, RLS, функции атомарной записи и импорта.
 - `supabase/functions/health-import`: внешний API приёма питания, проверка формата и интеграционного ключа.
+- `supabase/functions/wedx-coach`: MCP для ChatGPT, OAuth с отдельными правами чтения, данные только проверенного владельца.
+- `src/features/coach` и `coach.html`: управление подключениями и отдельный экран согласия без загрузки редактора тренировок. Настройка и эксплуатация — `docs/CHATGPT.md`.
 
 ## Данные и совместимость
 

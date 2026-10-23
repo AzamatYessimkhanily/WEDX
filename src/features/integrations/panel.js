@@ -1,5 +1,6 @@
 import { supabase, healthImportUrl } from '../../data/supabase.js';
 import { nutritionPanel } from './nutrition.js';
+import { coachPanel } from '../coach/panel.js';
 
 function text(tag, value) { const node = document.createElement(tag); node.textContent = value; return node; }
 function button(label, fn) { const b = text('button', label); b.type = 'button'; b.onclick = fn; return b; }
@@ -20,7 +21,7 @@ export function integrationsPanel(user, { open = false, getWeights = () => [] } 
   const settings = document.createElement('details'); settings.className = 'health-settings';
   settings.append(text('summary', 'Настройки'));
   const nutrition = nutritionPanel(user.id, settings, getWeights);
-  panel.append(nutrition);
+  panel.append(nutrition, coachPanel(user.id));
   if (!open) panel.addEventListener('toggle', () => { if (panel.open) nutrition.refresh(); });
   const section = document.createElement('section'); section.className = 'health-setup';
   section.append(text('h4', 'Apple Health'));
