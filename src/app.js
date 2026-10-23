@@ -1,6 +1,7 @@
 import { PROGRAM, DAYS, VOLUME } from "./domain/program.js";
 import { KEY, localStore } from "./data/local-store.js";
 import { createCloud } from "./data/cloud.js";
+import { restNotifications } from "./features/timer/notifications.js";
 import "./styles/app.css";
 const SEED={log:{},last:{},hist:{},done:{}};
 
@@ -324,16 +325,30 @@ function setsHTML(e,rec,todayMark){
 }
 
 /* ---------- timer ---------- */
-let endAt=0,total=0,tick=null;
+let endAt=0,total=0,tick=null,timerOwner=null;
 const dock=document.getElementById("dock"),clock=document.getElementById("clock"),
       tfill=document.getElementById("tfill"),tval=document.getElementById("tval"),
       tlbl=document.getElementById("tlbl");
 function startTimer(sec,label){
+  try{timerOwner=localStorage.getItem(KEY+"-owner");}catch{timerOwner=null;}
   total=sec;endAt=Date.now()+sec*1000;
   tval.textContent=label;tlbl.textContent="Отдых";
   clock.classList.remove("zero");
   dock.classList.add("up");
   clearInterval(tick);tick=setInterval(paintTimer,200);paintTimer();
+  saveRestTimer();restNotifications.setTimer(endAt,label);
+}
+function saveRestTimer(){
+  try{localStorage.setItem(KEY+"-rest-timer",JSON.stringify({owner:localStorage.getItem(KEY+"-owner"),endAt,total,label:tval.textContent}));}catch{}
+}
+function restoreRestTimer(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(KEY+"-rest-timer")||'null');
+    if(saved&&saved.owner===localStorage.getItem(KEY+"-owner")&&saved.endAt>Date.now()&&saved.endAt-Date.now()<=1800000){
+      total=saved.total;endAt=saved.endAt;timerOwner=saved.owner;tval.textContent=saved.label;tlbl.textContent="Отдых";
+      dock.classList.add("up");tick=setInterval(paintTimer,200);paintTimer();
+    }
+  }catch{}
 }
 function paintTimer(){
   const left=Math.max(0,endAt-Date.now())/1000;
@@ -343,8 +358,10 @@ function paintTimer(){
   if(left<=0){
     clearInterval(tick);tick=null;
     clock.classList.add("zero");tlbl.textContent="Готово - следующий подход";
-    if(navigator.vibrate)navigator.vibrate([120,70,120]);
-    beep();
+    try{localStorage.removeItem(KEY+"-rest-timer");}catch{}
+    if(document.visibilityState==="visible"&&Date.now()-endAt<10000){
+      if(navigator.vibrate)navigator.vibrate([120,70,120]);beep();
+    }
   }
 }
 function beep(){
@@ -358,11 +375,18 @@ function beep(){
     o.start();o.stop(a.currentTime+.5);
   }catch(e){}
 }
-document.getElementById("skip").onclick=()=>{clearInterval(tick);tick=null;dock.classList.remove("up");};
+document.getElementById("skip").onclick=()=>{clearInterval(tick);tick=null;endAt=0;dock.classList.remove("up");
+  try{localStorage.removeItem(KEY+"-rest-timer");}catch{}restNotifications.cancel();};
 document.getElementById("add30").onclick=()=>{
   if(!tick){endAt=Date.now();clock.classList.remove("zero");tlbl.textContent="Отдых";tick=setInterval(paintTimer,200);}
-  endAt+=30000;total+=30;paintTimer();
+  endAt+=30000;total+=30;paintTimer();saveRestTimer();restNotifications.setTimer(endAt,tval.textContent);
 };
+window.addEventListener('wedx-push-ready',()=>{if(endAt>Date.now())restNotifications.setTimer(endAt,tval.textContent);});
+window.addEventListener('wedx-timer-push',event=>{document.getElementById('timer-push-state').textContent=event.detail.message;});
+window.addEventListener('wedx-push-owner',event=>{
+  if(timerOwner&&timerOwner!==event.detail.owner){clearInterval(tick);tick=null;endAt=0;dock.classList.remove('up');
+    try{localStorage.removeItem(KEY+'-rest-timer');}catch{}}
+});
 
 /* ---------- day view ---------- */
 const main=document.getElementById("main");
@@ -384,10 +408,12 @@ function renderDay(){
   if(!p){
     main.innerHTML='<div style="height:18px"></div><div class="restday"><b>День отдыха</b>Восстановление - это часть программы, а не пауза в ней.</div>'+rulesHTML();
     const foot=el("div","foot");
+    foot.appendChild(restNotifications.control());
     foot.appendChild(cloudBox());main.appendChild(foot);
     return;
   }
   main.appendChild(el("div","daymeta",'<h2>'+esc(p.name)+' <span style="color:var(--muted);font-weight:400">· '+esc(p.note)+'</span></h2><span class="count" id="cnt"></span>'));
+  main.appendChild(restNotifications.control());
   const dr=el("div","daterow"+(logFor?" back":""),
     '<span class="dl">'+(logFor?'Записываешь за <b>'+shortDate(logFor)+'</b> · таймер выключен':'Дата записи')+'</span>'+
     '<input type="date" id="logdate" value="'+sessDate()+'" max="'+todayKey()+'" aria-label="Дата тренировки">'+
@@ -1254,10 +1280,12 @@ function cloudBox(){return cloudService.render();}
     progBtn.onclick();
   }else renderDay();
   cloudSync();
+  restoreRestTimer();
 
 })();
 
 if(import.meta.env.PROD && 'serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_WORKOUT')showView('day');});
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register(import.meta.env.BASE_URL+'sw.js', {scope:import.meta.env.BASE_URL})
       .catch(()=>{});

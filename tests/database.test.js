@@ -131,3 +131,47 @@ test('native Health imports replace the same day and keep seven-metric provenanc
   rows = (await db.query('select * from public.nutrition_daily')).rows;
   assert.equal(rows.length, 1); assert.equal(Number(rows[0].calories_kcal), 1200);
 });
+
+let pushDevice;
+test('push device registrations and timer RPCs cannot be accessed by anonymous or other accounts', async () => {
+  await identity('', 'service_role');
+  pushDevice = (await db.query('select public.register_rest_push($1,$2,$3,$4) id', [ownerA,'https://web.push.apple.com/test-private-device','key','auth'])).rows[0].id;
+  await assert.rejects(db.query('select public.register_rest_push($1,$2,$3,$4)', [ownerB,'https://web.push.apple.com/test-private-device','key','auth']));
+  await assert.rejects(db.query('select public.schedule_rest_push($1,$2,1,10000,$3)', [ownerB,pushDevice,'No access']));
+  for (const role of ['authenticated','anon']) {
+    await identity(ownerA,role);
+    await assert.rejects(db.query('select * from public.rest_push_devices'));
+    await assert.rejects(db.query('select public.rest_push_credentials()'));
+    await assert.rejects(db.query('select public.schedule_rest_push($1,$2,1,10000,$3)', [ownerA,pushDevice,'No bypass']));
+  }
+});
+
+test('rest extension and cancellation win over late requests and a worker cannot finish a newer timer', async () => {
+  await identity('', 'service_role');
+  const schedule = async (revision,ms,kind='rest') => (await db.query('select public.schedule_rest_push($1,$2,$3,$4,$5,$6) result', [ownerA,pushDevice,revision,ms,'Next set',kind])).rows[0].result;
+  assert.equal((await schedule(10,1000)).accepted,true);
+  await db.query("update public.rest_push_timers set due_at=now()-interval '1 second',next_attempt_at=now()-interval '1 second'");
+  const jobs = (await db.query('select * from public.claim_rest_push()')).rows;
+  assert.equal(jobs.length,1);
+  assert.equal((await db.query('select * from public.claim_rest_push()')).rows.length,0);
+  assert.equal((await schedule(11,30000)).accepted,true);
+  await db.query("select public.finish_rest_push($1,'rest',10,$2,'sent')",[pushDevice,jobs[0].claim_id]);
+  assert.equal((await db.query('select status from public.rest_push_timers')).rows[0].status,'pending');
+  assert.equal((await schedule(12,null)).accepted,true);
+  assert.equal((await schedule(11,30000)).accepted,false);
+  assert.equal((await schedule(12,null)).accepted,true); // Retrying an acknowledged cancellation is idempotent.
+  assert.equal((await db.query('select status from public.rest_push_timers')).rows[0].status,'cancelled');
+  await schedule(13,1000); await schedule(14,10000,'test');
+  assert.equal((await db.query('select * from public.rest_push_timers')).rows.length,2); // Tests never replace a rest timer.
+});
+
+test('expired pushes are dropped and revoked devices cancel both rest and test deliveries', async () => {
+  await identity('', 'service_role');
+  await db.query("update public.rest_push_timers set due_at=now()-interval '2 minutes',next_attempt_at=now()-interval '2 minutes' where kind='rest'");
+  assert.equal((await db.query('select * from public.claim_rest_push()')).rows.length,0);
+  assert.equal((await db.query("select status from public.rest_push_timers where kind='rest'")).rows[0].status,'expired');
+  await db.query('select public.disable_rest_push($1,$2)',[ownerA,pushDevice]);
+  await db.query("update public.rest_push_timers set due_at=now()-interval '1 second',next_attempt_at=now()-interval '1 second'");
+  assert.equal((await db.query('select * from public.claim_rest_push()')).rows.length,0);
+  assert.equal((await db.query('select enabled from public.rest_push_devices')).rows[0].enabled,false);
+});
