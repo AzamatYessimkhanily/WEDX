@@ -2,6 +2,8 @@ import { PROGRAM, DAYS, VOLUME } from "./domain/program.js";
 import { KEY, localStore } from "./data/local-store.js";
 import { createCloud } from "./data/cloud.js";
 import { restNotifications } from "./features/timer/notifications.js";
+import { technique, techniqueText, techniquePercent, compareTechnique, techniqueProgress, techniqueReadiness } from "./domain/technique.js";
+import { remainingSeconds, elapsedSeconds, pauseSetTimer, resumeSetTimer } from "./features/timer/set-timer.js";
 import "./styles/app.css";
 const SEED={log:{},last:{},hist:{},done:{}};
 
@@ -150,18 +152,20 @@ function fillFromHist(day,date){
     const rec=(state.hist[day+"|"+i]||[]).find(x=>x.d===date);if(!rec)return;
     any=true;
     const sets=rec.s&&rec.s.length?rec.s:Array.from({length:Math.min(rec.n,e.s)},()=>[rec.w,rec.r]);
-    state.log[day+"|"+i]=sets.map(x=>x?{w:e.w?String(x[0]):"",r:String(x[1]),d:true,x:x[3]?{w:String(x[2]),r:String(x[3])}:null}:{w:"",r:"",d:false});
+    state.log[day+"|"+i]=sets.map((x,j)=>x?{w:e.w?String(x[0]):"",r:String(x[1]),d:true,q:technique(rec.q?.[j],x[1]),x:x[3]?{w:String(x[2]),r:String(x[3])}:null}:{w:"",r:"",d:false});
   });
   if(any)state.logDate[day]=date;
   return any;
 }
 function openDate(date){
+  if(workTimer)stopWorkTimer();
   logFor=(date===todayKey())?null:date;
   const any=fillFromHist(cur,date);save();renderDay();
   toast(any?"Тренировка "+shortDate(date)+" - правь, всё обновится":(logFor?"Запись за "+shortDate(date):"Запись за сегодня"));
   return any;
 }
 function clearDay(day){
+  if(workTimer?.day===day)stopWorkTimer();
   PROGRAM[day].ex.forEach((e,i)=>{delete state.log[day+"|"+i];});
   delete state.logDate[day];
 }
@@ -266,6 +270,8 @@ function recordHistory(day,i){
   touchSession(day);
   const m=summarize(e,per,t),best=m.best,n=m.n;
   const rec={d:t,w:best?best.w:0,r:best?best.r:0,v:m.vol,n:n,s:per,g:sessGym()};
+  const quality=per.map((s,j)=>s?technique(sets[j]?.q,s[1]):null);
+  if(quality.some(Boolean))rec.q=quality;
   const idx=arr.findIndex(x=>x.d===t);
   if(n===0){ if(idx>=0)arr.splice(idx,1); touchSession(day); return; }
   if(idx>=0)arr[idx]=rec;
@@ -299,7 +305,12 @@ function readiness(e,rec){
   const done=rec.s.filter(Boolean);
   if(done.length<e.s)return null;
   const as=isAssist(e);
-  if(done.every(x=>x[1]>=rg.hi))return {ok:true,txt:as?"Все подходы на верхней границе - убавь противовес на 2.5-5 кг":"Все подходы на верхней границе - добавь 2.5-5 кг"};
+  if(done.every(x=>x[1]>=rg.hi)){
+    const quality=techniqueReadiness(rec);
+    if(quality==='hold')return {ok:false,txt:"Сначала закрепи технику: сохрани нагрузку и сделай все повторы чисто"};
+    if(quality==='unknown')return {ok:false,txt:"Повторы на верхней границе · отметь чистые повторы во всех подходах перед повышением нагрузки"};
+    return {ok:true,txt:as?"Повторы и техника стабильны — можно уменьшить противовес":"Повторы и техника стабильны — можно повысить вес"};
+  }
   if(done.filter(x=>x[1]<rg.lo).length>=2)return {ok:false,txt:as?"Два подхода ниже диапазона - держи или добавь противовес":"Два подхода ниже диапазона - держи или сбавь вес"};
   return null;
 }
@@ -318,7 +329,7 @@ function chipTxt(e,x){
 }
 function setsHTML(e,rec,todayMark){
   if(rec.s&&rec.s.length){
-    return '<div class="chips">'+rec.s.map(x=>'<span class="'+chipCls(e,x)+(todayMark?" today":"")+'">'+chipTxt(e,x)+'</span>').join("")+'</div>';
+    return '<div class="chips">'+rec.s.map((x,j)=>'<span class="'+chipCls(e,x)+(todayMark?" today":"")+'">'+chipTxt(e,x)+(x&&technique(rec.q?.[j],x[1])?'<small class="chip-quality">'+esc(techniqueText(rec.q[j],x[1],e.sec))+'</small>':'')+'</span>').join("")+'</div>';
   }
   const b=e.w&&rec.w?trim(rec.w)+"×"+rec.r:rec.r+(e.sec?"с":"");
   return '<div class="chips"><span class="chip">лучший '+b+'</span><span class="chip skip">'+rec.n+' подх.</span></div>';
@@ -326,10 +337,13 @@ function setsHTML(e,rec,todayMark){
 
 /* ---------- timer ---------- */
 let endAt=0,total=0,tick=null,timerOwner=null;
+let workTimer=null,workTick=null;
 const dock=document.getElementById("dock"),clock=document.getElementById("clock"),
       tfill=document.getElementById("tfill"),tval=document.getElementById("tval"),
       tlbl=document.getElementById("tlbl");
 function startTimer(sec,label){
+  if(workTimer)stopWorkTimer();
+  unlockAudio();
   try{timerOwner=localStorage.getItem(KEY+"-owner");}catch{timerOwner=null;}
   total=sec;endAt=Date.now()+sec*1000;
   tval.textContent=label;tlbl.textContent="Отдых";
@@ -364,9 +378,13 @@ function paintTimer(){
     }
   }
 }
+let timerAudio=null;
+function unlockAudio(){
+  try{timerAudio ||= new(window.AudioContext||window.webkitAudioContext)();void timerAudio.resume().catch(()=>{});}catch{}
+}
 function beep(){
   try{
-    const a=new(window.AudioContext||window.webkitAudioContext)();
+    const a=timerAudio;if(!a)return;
     const o=a.createOscillator(),g=a.createGain();
     o.connect(g);g.connect(a.destination);o.frequency.value=760;o.type="sine";
     g.gain.setValueAtTime(.001,a.currentTime);
@@ -384,9 +402,107 @@ document.getElementById("add30").onclick=()=>{
 window.addEventListener('wedx-push-ready',()=>{if(endAt>Date.now())restNotifications.setTimer(endAt,tval.textContent);});
 window.addEventListener('wedx-timer-push',event=>{document.getElementById('timer-push-state').textContent=event.detail.message;});
 window.addEventListener('wedx-push-owner',event=>{
+  if(workTimer&&workTimer.owner!==event.detail.owner)stopWorkTimer();
   if(timerOwner&&timerOwner!==event.detail.owner){clearInterval(tick);tick=null;endAt=0;dock.classList.remove('up');
     try{localStorage.removeItem(KEY+'-rest-timer');}catch{}}
 });
+
+const workControls=document.getElementById('work-controls');
+const workPause=document.getElementById('work-pause'),workSave=document.getElementById('work-save');
+let workWakeLock=null;
+async function keepWorkScreenOn(){
+  if(!navigator.wakeLock||workWakeLock||!workTimer?.endAt||remainingSeconds(workTimer)<=0||document.visibilityState!=='visible')return;
+  try{
+    const lock=await navigator.wakeLock.request('screen');
+    if(!workTimer?.endAt||remainingSeconds(workTimer)<=0){await lock.release();return;}
+    workWakeLock=lock;lock.addEventListener('release',()=>{if(workWakeLock===lock)workWakeLock=null;});
+  }catch{}
+}
+function releaseWorkScreen(){const lock=workWakeLock;workWakeLock=null;void lock?.release().catch(()=>{});}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&workTimer){paintWorkTimer();void keepWorkScreenOn();}});
+function setWorkMode(active){
+  workControls.hidden=!active;dock.classList.toggle('working',active);
+  dock.querySelector('.dbtns').hidden=active;
+  document.getElementById('timer-push-state').hidden=active;
+}
+function saveWorkTimer(){
+  try{localStorage.setItem(KEY+'-set-timer',JSON.stringify(workTimer));}catch{}
+}
+function stopWorkTimer(){
+  releaseWorkScreen();
+  clearInterval(workTick);workTick=null;workTimer=null;
+  try{localStorage.removeItem(KEY+'-set-timer');}catch{}
+  setWorkMode(false);dock.classList.remove('up');clock.classList.remove('zero');
+}
+function startWorkTimer(day,i,j){
+  if(logFor)return;
+  const e=PROGRAM[day].ex[i];
+  if(workTimer?.day===day&&workTimer.i===i&&workTimer.j===j){dock.classList.add('up');return;}
+  if(workTimer&&!confirm('Перезапустить таймер для другого подхода? Текущее время не будет записано.'))return;
+  const raw=Number(slot(day,i,j).r||range(e).lo);
+  if(!Number.isInteger(raw)||raw<1||raw>3600){toast('Для таймера укажи от 1 до 3600 секунд');return;}
+  // A working set replaces rest, including its pending push notification.
+  if(endAt){document.getElementById('skip').click();}
+  clearInterval(workTick);
+  let owner=null;try{owner=localStorage.getItem(KEY+'-owner');}catch{}
+  workTimer={day,i,j,date:todayKey(),owner,total:raw,remaining:raw,endAt:Date.now()+raw*1000,notified:false};
+  unlockAudio();void keepWorkScreenOn();
+  saveWorkTimer();setWorkMode(true);dock.classList.add('up');
+  workTick=setInterval(paintWorkTimer,200);paintWorkTimer();
+}
+function paintWorkTimer(){
+  if(!workTimer)return;
+  const e=PROGRAM[workTimer.day].ex[workTimer.i],left=remainingSeconds(workTimer),seconds=Math.ceil(left),elapsed=elapsedSeconds(workTimer);
+  clock.textContent=Math.floor(seconds/60)+':'+pad(seconds%60);
+  clock.classList.toggle('zero',left<=0);
+  tlbl.textContent=left<=0?'Подход по времени завершён':workTimer.endAt===null?'Подход · пауза':'Выполняй подход';
+  tval.textContent=e.n+' · подход '+(workTimer.j+1)+' из '+e.s+(e.side?' · одна сторона':'');
+  tfill.style.width=(left/workTimer.total*100)+'%';
+  workPause.textContent=workTimer.endAt===null?'Продолжить':'Пауза';workPause.disabled=left<=0;
+  workSave.textContent=elapsed?'Записать '+elapsed+' сек':'Записать время';workSave.disabled=elapsed<1;
+  if(left<=0&&!workTimer.notified){
+    releaseWorkScreen();
+    workTimer.notified=true;saveWorkTimer();
+    if(document.visibilityState==='visible'&&Date.now()-workTimer.endAt<10000){beep();if(navigator.vibrate)navigator.vibrate([120,70,120]);}
+  }
+}
+workPause.onclick=()=>{
+  if(!workTimer)return;
+  workTimer=workTimer.endAt===null?resumeSetTimer(workTimer):pauseSetTimer(workTimer);
+  if(workTimer.endAt){unlockAudio();void keepWorkScreenOn();}else releaseWorkScreen();
+  saveWorkTimer();paintWorkTimer();
+};
+document.getElementById('work-reset').onclick=()=>{
+  if(!workTimer)return;
+  workTimer={...workTimer,remaining:workTimer.total,endAt:Date.now()+workTimer.total*1000,notified:false};
+  unlockAudio();void keepWorkScreenOn();
+  saveWorkTimer();paintWorkTimer();
+};
+document.getElementById('work-cancel').onclick=stopWorkTimer;
+workSave.onclick=()=>{
+  if(!workTimer)return;
+  const timer=workTimer,seconds=elapsedSeconds(timer);
+  if(timer.owner!==localStorage.getItem(KEY+'-owner')){stopWorkTimer();return;}
+  if(timer.date!==todayKey()){stopWorkTimer();toast('Дата тренировки изменилась. Запиши время вручную');return;}
+  if(seconds<1)return;
+  const d=slot(timer.day,timer.i,timer.j);d.r=String(seconds);if(d.q)d.q=technique(d.q,seconds);
+  stopWorkTimer();cur=timer.day;logFor=null;touchSession(cur);
+  if(d.d)recordHistory(cur,timer.i);saveNow();renderDays();showView('day');
+  main.querySelector('.ex[data-i="'+timer.i+'"]')?.scrollIntoView({block:'start',behavior:'smooth'});
+  toast('Время записано · отметь чистые секунды и заверши подход');
+};
+function restoreWorkTimer(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(KEY+'-set-timer')||'null'),e=PROGRAM[saved?.day]?.ex[saved?.i];
+    if(!saved)return;
+    if(saved.owner!==localStorage.getItem(KEY+'-owner')||saved.date!==todayKey()||!e?.sec||!Number.isInteger(saved.j)||saved.j<0||saved.j>=e.s||
+      !Number.isInteger(saved.total)||saved.total<1||saved.total>3600||!Number.isFinite(saved.remaining)||saved.remaining<0||saved.remaining>saved.total||
+      (saved.endAt!==null&&(!Number.isFinite(saved.endAt)||saved.endAt>Date.now()+saved.total*1000))){localStorage.removeItem(KEY+'-set-timer');return;}
+    if(endAt)document.getElementById('skip').click();
+    workTimer=saved;setWorkMode(true);dock.classList.add('up');workTick=setInterval(paintWorkTimer,200);paintWorkTimer();
+    void keepWorkScreenOn();
+  }catch{}
+}
 
 /* ---------- day view ---------- */
 const main=document.getElementById("main");
@@ -581,9 +697,13 @@ function setRow(e,i,j,ls){
     const ph=px?trim(px[0]):(lastW||"–");
     wf.innerHTML='<input type="number" inputmode="decimal" step="0.5" placeholder="'+esc(ph)+'"><span>кг</span>';
     const wi=wf.querySelector("input");wi.value=d.w;
-    wi.oninput=()=>{d.w=wi.value;if(!logFor&&!isMachine(e))state.last[cur+"|"+i]=wi.value;touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px);updateLive();};
+    wi.oninput=()=>{d.w=wi.value;if(!logFor&&!isMachine(e))state.last[cur+"|"+i]=wi.value;touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px,ls?.q?.[j]);updateLive();};
   }else{
-    wf.innerHTML='<input type="text" value="Своё" disabled style="opacity:.45">';
+    if(e.sec&&!logFor){
+      const launch=el("button","set-timer-start","▶ Таймер");
+      launch.setAttribute("aria-label","Таймер подхода "+(j+1));
+      launch.onclick=()=>startWorkTimer(cur,i,j);wf.appendChild(launch);
+    }else wf.innerHTML='<input type="text" value="Своё" disabled style="opacity:.45">';
   }
   row.appendChild(wf);
 
@@ -593,15 +713,18 @@ function setRow(e,i,j,ls){
     (px?'<span class="was">было <b>'+px[1]+(px[3]?"+"+px[3]:"")+'</b></span>':'<span>'+(e.sec?"сек":"пвт")+'</span>');
   if(px)rf.classList.add("hasw");
   const ri=rf.querySelector("input");ri.value=d.r;
-  ri.oninput=()=>{d.r=ri.value;touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px);updateLive();if(d.d&&e.w)paintDropBtn(wrap,e,d);};
+  ri.setAttribute("aria-label",(e.sec?"Секунды":"Повторы")+" в подходе "+(j+1));
+  ri.oninput=()=>{d.r=ri.value;if(d.q&&Number(d.r)>0)d.q=technique(d.q,d.r);touchSession(cur);if(d.d)recordHistory(cur,i);save();markBeat(row,e,d,px,ls?.q?.[j]);updateLive();paintQuality();if(d.d&&e.w)paintDropBtn(wrap,e,d);};
   row.appendChild(rf);
 
   const b=el("button","chk",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>');
   b.setAttribute("aria-pressed",d.d);b.setAttribute("aria-label","Подход "+(j+1)+" выполнен");
   b.onclick=()=>{
+    if(workTimer)stopWorkTimer();
     d.d=!d.d;
     if(d.d&&!d.r)d.r=px?String(px[1]):e.r.split("-")[0];
     if(d.d&&e.w&&!d.w){d.w=px?String(px[0]):(lastW||"");}
+    if(d.d&&!technique(d.q,d.r))qualityOpen[cur+"|"+i+"|"+j]=true;
     recordHistory(cur,i);
     save();
     const isLast=(j===e.s-1);
@@ -609,8 +732,16 @@ function setRow(e,i,j,ls){
     if(d.d&&!logFor)startTimer(e.rest,isLast?nextExercise(i):e.n+" · подход "+(j+2)+" из "+e.s);
   };
   row.appendChild(b);
-  markBeat(row,e,d,px);
+  markBeat(row,e,d,px,ls?.q?.[j]);
   wrap.appendChild(row);
+  const quality=el("div","set-quality");wrap.appendChild(quality);
+  function paintQuality(){
+    quality.replaceChildren(qualityPicker(e,i,j,d,()=>{
+      touchSession(cur);if(d.d)recordHistory(cur,i);save();
+      markBeat(row,e,d,px,ls?.q?.[j]);paintQuality();
+    }));
+  }
+  paintQuality();
   if(e.w&&d.d){
     let lastDone=-1;for(let q=0;q<e.s;q++)if(slot(cur,i,q).d)lastDone=q;
     if(d.x)wrap.appendChild(dropRow(e,i,j,d,px));
@@ -618,6 +749,44 @@ function setRow(e,i,j,ls){
   }
   return wrap;
 }
+function qualityPicker(e,i,j,d,onChange){
+  const box=el("details","quality-picker");
+  const q=technique(d.q,d.r),key=cur+"|"+i+"|"+j;
+  box.open=!!qualityOpen[key];box.ontoggle=()=>{qualityOpen[key]=box.open;};
+  const summary=el("summary",null,'<span>Техника</span><b>'+esc(q?techniqueText(q,d.r,e.sec):"Не отмечено")+'</b>');
+  box.appendChild(summary);
+  const count=Math.max(0,Math.floor(Number(d.r)||0));
+  if(count){
+    const detail=el("div","quality-detail");
+    const label=el("div","quality-breakdown");
+    const input=el("input");input.type="range";input.min="0";input.max=String(count);input.step="1";input.value=String(q?.clean??count);
+    input.setAttribute("aria-label",e.sec?"Чистые секунды":"Чистые повторы");
+    const all=el("button","quality-all","Всё чисто");all.type="button";
+    const clear=el("button","quality-clear","Убрать отметку");clear.type="button";
+    function paint(){
+      const current=technique(d.q,d.r),tail=current?count-current.clean:null;
+      label.textContent=current
+        ? current.clean+(e.sec?" сек":"")+" чисто"+(tail?" + "+tail+(e.sec?" сек":"")+" с потерей техники":" · весь подход")
+        : "Сколько "+(e.sec?"секунд":"повторов")+" получилось чисто?";
+      summary.querySelector('b').textContent=current?techniqueText(current,d.r,e.sec):"Не отмечено";
+      input.setAttribute('aria-valuetext',current?label.textContent:"Не отмечено");
+      all.setAttribute('aria-pressed',current?.clean===count);clear.hidden=!current;
+    }
+    input.oninput=()=>{
+      d.q={clean:Number(input.value)};paint();touchSession(cur);if(d.d)recordHistory(cur,i);save();
+      const row=box.closest('.sset')?.querySelector('.srow'),ls=lastSession(cur,i);
+      if(row)markBeat(row,e,d,ls?.s?.[j],ls?.q?.[j]);
+    };
+    all.onclick=()=>{d.q={clean:count};onChange();};
+    clear.onclick=()=>{delete d.q;onChange();};
+    paint();
+    detail.append(label,input,el("div","quality-legend",'<span>0 чисто</span><span>'+count+(e.sec?' сек':' повт.')+' чисто</span>'));
+    const actions=el("div","quality-actions");actions.append(all,clear);detail.appendChild(actions);
+    box.appendChild(detail);
+  }else box.appendChild(el("p","quality-description","Сначала введи "+(e.sec?"секунды":"повторы")+", затем отметь, сколько получилось чисто"));
+  return box;
+}
+const qualityOpen={};
 /* добивка: после рабочего подхода сбросил вес и добрал недостающие повторы */
 function shortBy(e,d){const r=parseFloat(d.r)||0,lo=range(e).lo;return r&&r<lo?lo-r:0;}
 function dropSuggest(e,d,px){
@@ -661,12 +830,15 @@ function dropRow(e,i,j,d,px){
   return row;
 }
 /* подсветка: подход лучше прошлого раза */
-function markBeat(row,e,d,px){
+function markBeat(row,e,d,px,pq){
   row.classList.toggle("short",!!(d.d&&shortBy(e,d)));
-  if(!px||!d.d){row.classList.remove("beat");return;}
+  if(!px||!d.d){row.classList.remove("beat");row.dataset.improvement="";return;}
   const w=parseFloat(d.w)||0,r=parseFloat(d.r)||0;
-  const beat=e.w?(heavier(e,w,px[0])||(w===px[0]&&r>px[1])):r>px[1];
+  const quality=compareTechnique(d.q,pq,r,px[1]);
+  const loadHeld=!e.w||w===px[0]||heavier(e,w,px[0]);
+  const beat=quality!==-1&&((e.w?(heavier(e,w,px[0])||(w===px[0]&&r>px[1])):r>px[1])||(quality===1&&loadHeld&&r>=px[1]));
   row.classList.toggle("beat",beat);
+  row.dataset.improvement=beat&&quality===1?"Техника лучше":"";
 }
 
 function nextExercise(i){
@@ -913,6 +1085,9 @@ function computePRs(){
       arr.forEach((r,idx)=>{
         const e1=recE1(r,e);
         if(idx>0){
+          if(techniqueProgress(r,arr[idx-1],{weighted:!!e.w,assisted:isAssist(e)})===1){
+            ev.push({d:r.d,n:nm,t:"техника при той же или большей нагрузке",val:"Чище",prev:"прошлая тренировка"});
+          }
           if(e.w&&heavier(e,r.w,mw)&&(r.w>0||isAssist(e)))ev.push({d:r.d,n:nm,t:isAssist(e)?"противовес":"вес",val:trim(r.w)+" кг",prev:trim(mw)+" кг"});
           else if(e.w&&e1>me&&e1>0)ev.push({d:r.d,n:nm,t:"1ПМ",val:trim(e1)+" кг",prev:trim(me)+" кг"});
           else if(e.w&&r.v>mv&&r.v>0)ev.push({d:r.d,n:nm,t:"объём",val:fmtN(r.v)+" кг",prev:fmtN(mv)+" кг"});
@@ -1075,15 +1250,16 @@ function bodyWeightCard(){
 
 /* ---------- прогресс по дню: карточки упражнений ---------- */
 function metricsFor(e){
+  const quality={id:"technique",lbl:"Техника",f:techniquePercent,unit:"% чисто"};
   if(e.w)return [
     isAssist(e)?{id:"w",lbl:"Нагрузка",f:r=>Math.round(effW(e,r.w,r.d)*10)/10,unit:"кг"}:{id:"w",lbl:"Вес",f:r=>r.w,unit:"кг"},
     {id:"v",lbl:"Объём",f:r=>r.v,unit:"кг",fmt:fmtN},
     {id:"e1",lbl:"1ПМ",f:r=>Math.round(recE1(r,e)*10)/10,unit:"кг"},
-    {id:"reps",lbl:"Повторы",f:r=>recReps(r),unit:""}
+    {id:"reps",lbl:"Повторы",f:r=>recReps(r),unit:""},quality
   ];
   return [
     {id:"r",lbl:e.sec?"Лучший, сек":"Лучший подход",f:r=>r.r,unit:e.sec?"сек":""},
-    {id:"reps",lbl:"Всего за тренировку",f:r=>recReps(r),unit:e.sec?"сек":""}
+    {id:"reps",lbl:"Всего за тренировку",f:r=>recReps(r),unit:e.sec?"сек":""},quality
   ];
 }
 const metricSel={};
@@ -1124,6 +1300,9 @@ function progressCard(day,e,i,arr){
     else if(cur_.r>prev.r)m='<span class="up">+'+(cur_.r-prev.r)+(e.sec?" сек":" повт.")+'</span>';
     else if(cur_.r<prev.r)m='<span class="down">'+(cur_.r-prev.r)+(e.sec?" сек":" повт.")+'</span>';
     else m='<span class="flat">тот же вес</span>';
+    const quality=techniqueProgress(cur_,prev,{weighted:!!e.w,assisted:as});
+    if(quality===1)m='<span class="up">Техника лучше ↑</span>';
+    else if(quality===-1)m+='<span class="down quality-delta">Техника хуже</span>';
     const sub=e.w?'объём '+(dv>0?"+":"")+fmtN(dv)+' кг':'всего '+(dr>0?"+":"")+dr;
     delta='<span class="pdelta">'+m+'<small>'+sub+'</small></span>';
   }
@@ -1159,11 +1338,12 @@ function progressCard(day,e,i,arr){
     function draw(){
       const m=ms.find(x=>x.id===metricSel[k]);
       let mx=-Infinity;
-      const pts=arr.map((r,idx)=>{
+      const pts=arr.filter(r=>m.f(r)!==null).map((r,idx)=>{
         const y=m.f(r);const pr=idx>0&&y>mx&&y>0;mx=Math.max(mx,y);
-        return {x:r.d,y:y,pr:pr,sub:r.s&&r.s.length?r.s.map(x=>chipTxt(e,x)).join(" · "):("лучший "+chipTxt(e,[r.w,r.r])+" · "+r.n+" подх.")};
+        return {x:r.d,y:y,pr:pr,sub:r.s&&r.s.length?r.s.map((x,j)=>chipTxt(e,x)+(x&&technique(r.q?.[j],x[1])?" ("+techniqueText(r.q[j],x[1],e.sec)+")":"")).join(" · "):("лучший "+chipTxt(e,[r.w,r.r])+" · "+r.n+" подх.")};
       });
       lineChart(ch,pts,{unit:m.unit,fmt:m.fmt||trim});
+      if(m.id==='technique')ch.appendChild(el('div','quality-chart-note','Доля чистых '+(e.sec?'секунд':'повторов')+' в отмеченных подходах. Прогресс сравнивается при той же или большей нагрузке; подходы без отметки пропущены.'));
     }
     draw();
     /* рекорды */
@@ -1281,6 +1461,7 @@ function cloudBox(){return cloudService.render();}
   }else renderDay();
   cloudSync();
   restoreRestTimer();
+  restoreWorkTimer();
 
 })();
 

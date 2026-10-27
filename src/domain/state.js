@@ -4,10 +4,13 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value =>
   !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value,
   'Некорректная дата');
 const number = z.number().finite().nonnegative();
+// Keep older ratings readable in backups; new entries only store clean repetitions.
+const quality = z.object({ clean: number.int().nullable(), score: z.number().int().min(1).max(5).optional() });
 const record = z.object({
   d: day, w: number, r: number, v: number, n: number,
   g: z.string().optional(),
   s: z.array(z.union([z.null(), z.array(number)])).optional(),
+  q: z.array(quality.nullable()).optional(),
 }).passthrough();
 const map = z.record(z.string(), z.unknown());
 export const workoutStateSchema = z.object({

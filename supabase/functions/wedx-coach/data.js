@@ -1,4 +1,5 @@
 import { PROGRAM } from '../../../src/domain/program.js';
+import { technique } from '../../../src/domain/technique.js';
 import { dailyMetrics, nutritionStatus } from '../../../src/features/integrations/metrics.js';
 
 export const NOTES = {
@@ -57,6 +58,7 @@ export function workoutDays(snapshot, range, filter = {}) {
         best_recorded_weight_kg: record.w, best_recorded_repetitions: record.r, set_count: record.n,
         recorded_volume_kg_reps: record.v, individual_sets_available: Array.isArray(record.s),
         sets: record.s?.flatMap((s, i) => s ? [{ set_number: i + 1, recorded_weight_kg: s[0], repetitions: s[1],
+          technique: technique(record.q?.[i], s[1]),
           ...(s.length >= 4 ? { extra_set: { recorded_weight_kg: s[2], repetitions: s[3] } } : {}) }] : []) ?? null,
         note: rawNote.slice(0, 1000), note_truncated: rawNote.length > 1000 });
     }

@@ -229,9 +229,9 @@
     position:fixed;left:0;right:0;bottom:0;z-index:50;
     background:var(--surface);border-top:1px solid var(--line);
     padding:10px 14px calc(12px + env(safe-area-inset-bottom));
-    transform:translateY(105%);transition:transform .22s ease;
+    visibility:hidden;transform:translateY(105%);transition:transform .22s ease;
   }
-  .dock.up{transform:translateY(0);}
+  .dock.up{visibility:visible;transform:translateY(0);}
   .dockin{max-width:560px;margin:0 auto;}
   .dtop{display:flex;align-items:center;gap:12px;}
   .clock{font-size:52px;font-weight:700;line-height:.9;letter-spacing:-1px;color:var(--amber);min-width:118px;}
@@ -406,7 +406,7 @@
   .toast{
     position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
     background:var(--text);color:var(--ink);padding:9px 16px;border-radius:99px;font-size:14.5px;font-weight:600;
-    opacity:0;transition:.2s;z-index:60;pointer-events:none;white-space:nowrap;
+    opacity:0;transition:.2s;z-index:60;pointer-events:none;width:max-content;max-width:calc(100vw - 28px);white-space:normal;text-align:center;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
@@ -508,3 +508,51 @@
   .nutrition-goals input[type=checkbox]{margin-right:8px;}
   [data-sync-conflict]{border:1px solid var(--amber);border-radius:8px;padding:12px;margin:10px 0;}
   button:disabled{opacity:.55;cursor:wait;}
+
+/* Per-set technique and the working-set countdown. */
+[hidden]{display:none!important;}
+.set-quality{margin:5px 0 8px 29px;}
+.quality-picker{border:1px solid var(--line);border-radius:8px;background:rgba(19,36,48,.28);}
+.quality-picker summary{display:flex;align-items:center;gap:8px;min-height:40px;padding:7px 10px;cursor:pointer;list-style:none;font-size:12.5px;}
+.quality-picker summary::-webkit-details-marker{display:none;}
+.quality-picker summary span{color:var(--muted);flex-shrink:0;}
+.quality-picker summary b{font-weight:500;text-align:right;margin-left:auto;color:var(--amber);}
+.quality-picker summary::after{content:'⌄';color:var(--muted);}
+.quality-picker[open] summary::after{content:'⌃';}
+.quality-picker[open]{padding-bottom:8px;}
+.quality-picker button{font:inherit;cursor:pointer;}
+.quality-legend{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin:0 0 6px;}
+.quality-description{font-size:13px;text-align:center;margin:6px 10px;color:var(--text);}
+.quality-detail{margin:0 9px;padding-top:8px;border-top:1px solid var(--line);}
+.quality-detail button,.quality-clear{border:0;background:transparent;color:var(--muted);font-size:12px!important;min-height:36px;padding:6px 4px;text-align:left;}
+.quality-detail button{color:var(--amber);}
+.quality-breakdown{font-size:12px;line-height:1.4;}
+.quality-detail input[type=range]{width:100%;height:32px;margin:4px 0;accent-color:var(--done);}
+.quality-clear{margin:0 9px;}
+.quality-picker :focus-visible,.set-timer-start:focus-visible,.work-controls button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+.chip-quality{display:block;font-size:10px;font-weight:400;max-width:240px;white-space:normal;}
+.quality-delta{display:block;font-size:12px;}
+.quality-chart-note{color:var(--muted);font-size:12px;line-height:1.4;margin-top:8px;}
+.srow[data-improvement="Техника лучше"] .slabel{color:var(--done);}
+.set-timer-start{width:100%;min-height:42px;background:var(--amber-wash);color:var(--amber);border:1px solid var(--amber-dim);border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;}
+.work-controls{display:grid;grid-template-columns:1fr 1.6fr;gap:6px;margin-top:8px;}
+.work-controls button{min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--text);font:600 14px 'Barlow Semi Condensed',system-ui,sans-serif;cursor:pointer;}
+.work-controls #work-save{background:var(--amber);border-color:var(--amber);color:var(--ink);}
+.work-controls #work-reset,.work-controls #work-cancel{min-height:30px;background:transparent;color:var(--muted);font-weight:400;}
+.work-controls button:disabled{opacity:.4;cursor:default;}
+.ex{scroll-margin-top:150px;}
+
+.srow[data-improvement="Техника лучше"]::after{content:attr(data-improvement) " ↑";grid-column:2 / -1;color:var(--done);font-size:12px;}
+.work-timer-note{grid-column:1 / -1;text-align:center;color:var(--muted);font-size:11px;}
+body:has(.dock.working.up){padding-bottom:250px;}
+@media(max-width:360px){
+  .days{gap:4px;}
+  .day{min-width:0;padding-inline:2px;}
+  .day small{font-size:11px;}
+  .quality-picker summary{gap:5px;}
+  .quality-picker summary b{font-size:11px;}
+}
+
+.quality-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.quality-detail .quality-all{padding:8px 12px;min-height:40px;background:var(--done-wash);border:1px solid var(--done);border-radius:7px;color:var(--done);font-weight:600;}
+.quality-detail .quality-all[aria-pressed=true]{background:var(--done);color:var(--ink);}

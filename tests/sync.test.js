@@ -32,6 +32,17 @@ test('first upload migrates local history once; reload does not duplicate it', a
   assert.equal(h.writes, 1); assert.equal(h.status, 'saved');
   assert.deepEqual(h.server.snapshot, workout);
 });
+test('technique edits roundtrip through sync and reach a second device with sparse sets intact', async () => {
+  const local = structuredClone(workout);
+  local.hist['mon|0'][1].q = [{ clean: 8 }, null, { score: 5, clean: 9 }];
+  const first = harness({ local }); await first.engine.sync();
+  const second = harness({ local: { hist: {} }, remote: first.server }); await second.engine.sync();
+  assert.deepEqual(second.state.hist, local.hist);
+  assert.equal(second.status, 'saved');
+  second.state.hist['mon|0'][1].q[0] = { clean: 10 };
+  await second.engine.sync();
+  assert.deepEqual(second.server.snapshot.hist['mon|0'][1].q, [{ clean: 10 }, null, { score: 5, clean: 9 }]);
+});
 test('two existing differing copies require resolution, with no automatic overwrite', async () => {
   const remote = { snapshot: { ...workout, bw: [{ d: '2026-10-20', w: 83 }] }, revision: 3 };
   const h = harness({ remote }); await h.engine.sync();

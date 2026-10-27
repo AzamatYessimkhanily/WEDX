@@ -224,3 +224,17 @@ test('coach refresh rotates tokens, invalidates previous access and revokes the 
   assert.deepEqual(await refresh(),{error:'invalid_grant'});
   assert.equal((await db.query('select public.coach_read_access($1,$2) result',['8'.repeat(64),coachResource])).rows[0].result.error,'invalid_token');
 });
+
+test('technique stays in the canonical cloud snapshot and backups without changing drop-set projections', async () => {
+  await identity(ownerA);
+  const state = structuredClone(workout);
+  state.hist['mon|0'][1].q = [{ clean: 8 }, null, { score: 3, clean: 7 }];
+  const revision = (await db.query('select revision from public.workout_state')).rows[0].revision;
+  assert.equal((await save(state, revision)).status, 'saved');
+  assert.deepEqual((await db.query('select snapshot from public.workout_state')).rows[0].snapshot.hist, state.hist);
+  const old = structuredClone(state);
+  state.hist['mon|0'][1].q[0] = { clean: 10 };
+  await save(state, Number(revision) + 1);
+  assert.deepEqual((await db.query('select snapshot from public.workout_backups order by revision desc limit 1')).rows[0].snapshot.hist, old.hist);
+  assert.equal((await db.query('select * from public.exercise_sets')).rows.length, 2);
+});
