@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = 'WEDX — Здоровье'
+IMPORT_DAYS = 31
 ENDPOINT = 'https://lhwvpjaatsroijgozoro.supabase.co/functions/v1/health-import'
 
 
@@ -63,15 +64,15 @@ def build(token='', mock=False):
     def format_date(input, pattern='yyyy-MM-dd'):
         return add('format.date', 'Formatted Date', WFDate=text(input), WFDateFormatStyle='Custom', WFDateFormat=pattern, WFLocale='en_US_POSIX')
 
-    add('comment', WFCommentActionText='WEDX · Apple «Здоровье». Дневные итоги за 8 дней: съеденные ккал, белок, углеводы, жиры и активная энергия. '
-        'Активность берётся только с Apple Watch: команда сама находит название часов и фильтрует источник до группировки. '
+    add('comment', WFCommentActionText='WEDX · Apple «Здоровье». Дневные итоги за 31 день: съеденные ккал, белок, углеводы, жиры и активная энергия. '
+        'Активность берётся только с Apple Watch. При настройке в последнем «Найти данные здоровья» выбери свои часы в поле «Источник» из списка вместо переменной. '
         'Первый запуск — на разблокированном iPhone. Разреши чтение пяти показателей и отправку в свой WEDX. '
         'После запуска сверь сегодняшний день с «Здоровьем». Дневная норма задаётся отдельно в WEDX. Команда ничего не записывает в «Здоровье».')
     key = add('gettext', 'Text', WFTextActionText=token or 'ВСТАВЬ_КЛЮЧ_ИЗ_WEDX')
     now = add('date', 'Date', WFDateActionMode='Current Date')
     end = format_date(now)
     start_raw = add('adjustdate', 'Adjusted Date', WFDate=text(now), WFAdjustOperation='Subtract',
-                    WFDuration=state('WFQuantityFieldValue', {'Magnitude': '7', 'Unit': 'days'}))
+                    WFDuration=state('WFQuantityFieldValue', {'Magnitude': str(IMPORT_DAYS - 1), 'Unit': 'days'}))
     start = format_date(start_raw)
     fixtures = None
     if mock:
@@ -90,7 +91,7 @@ def build(token='', mock=False):
             {'Bounded': True, 'Operator': 4, 'Property': 'Type', 'Removable': False,
              'Values': {'Enumeration': state('WFStringSubstitutableState', label)}},
             {'Bounded': True, 'Operator': 1001, 'Property': 'Start Date', 'Removable': True,
-             'Values': {'Number': '8', 'Unit': 16}},
+             'Values': {'Number': str(IMPORT_DAYS), 'Unit': 16}},
         ]
         if source is not None:
             rows.append({'Bounded': True, 'Operator': 4, 'Property': 'Source', 'Removable': True,

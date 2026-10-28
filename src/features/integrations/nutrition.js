@@ -1,5 +1,6 @@
 import { healthShortcutUrl } from './health-shortcut.js';
 import { supabase } from '../../data/supabase.js';
+import { loadNutritionHistory } from '../../data/nutrition-history.js';
 import { dailyMetrics, nutritionStatus } from './metrics.js';
 import { localDay, nutritionCalendar } from './calendar.js';
 import { goalsForm } from './goals.js';
@@ -65,9 +66,7 @@ class NutritionPanel extends HTMLElement {
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const [nutrition, targets] = await Promise.all([
-        supabase.from('nutrition_daily')
-          .select('day,nutrition_origin,calories_kcal,protein_grams,carbs_grams,fat_grams,calories_burned,activity_status,metric_synced_at,updated_at').eq('user_id', this.ownerId)
-          .order('day', { ascending: false }).limit(8).abortSignal(controller.signal),
+        loadNutritionHistory(supabase, this.ownerId, controller.signal),
         supabase.from('nutrition_goals').select('effective_from,base_calorie_goal,protein_goal_g,protein_per_kg,include_activity,source,updated_at')
           .eq('user_id', this.ownerId).order('effective_from', { ascending: false }).abortSignal(controller.signal),
       ]);

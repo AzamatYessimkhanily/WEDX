@@ -11,6 +11,16 @@ print(json.dumps(m.build()))`;
   const actions = workflow.WFWorkflowActions;
   const queries = actions.filter(a => a.WFWorkflowActionIdentifier === 'is.workflow.actions.filter.health.quantity');
   const rows = a => a.WFWorkflowActionParameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates;
+  const start = actions.find(a => a.WFWorkflowActionIdentifier === 'is.workflow.actions.adjustdate').WFWorkflowActionParameters;
+  assert.equal(start.WFAdjustOperation, 'Subtract');
+  assert.equal(start.WFDuration.Value.Magnitude, '30');
+  assert.equal(start.WFDuration.Value.Unit, 'days');
+  for (const query of queries) {
+    const date = rows(query).find(r => r.Property === 'Start Date');
+    assert.equal(date.Operator, 1001);
+    assert.equal(date.Values.Number, '31'); // Includes the complete first accepted day.
+    assert.equal(date.Values.Unit, 16);
+  }
   const activity = queries.filter(a => rows(a).find(r => r.Property === 'Type').Values.Enumeration.Value === 'Active Calories');
   assert.equal(activity.length, 2);
   const [discovery, totals] = activity.map(a => a.WFWorkflowActionParameters);

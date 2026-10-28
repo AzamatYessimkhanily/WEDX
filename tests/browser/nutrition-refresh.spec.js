@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ownerA, ownerB } from '../fixtures.js';
 
-async function connect(page) {
+async function connect(page, { time = '2026-10-22T07:00:00Z', sessionSeconds = 3600 } = {}) {
   await page.addInitScript(() => localStorage.setItem('gym-log-v1', JSON.stringify({
     hist: {}, bw: [{ d: '2026-10-01', w: 80 }, { d: '2026-10-22', w: 100 }],
   })));
@@ -9,13 +9,13 @@ async function connect(page) {
     owner: ownerA, requests: [], fail: false, hold: null, goals: [], goalWrites: [],
     days: [{ day: '2026-10-21', calories_kcal: 2100, protein_grams: 150, updated_at: '2026-10-22T07:00:00Z' }],
   };
-  await page.clock.install({ time: new Date('2026-10-22T07:00:00Z') });
+  await page.clock.install({ time: new Date(time) });
   await page.route('http://127.0.0.1:54321/**', async route => {
     const { pathname, searchParams } = new URL(route.request().url());
     const json = (value, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) });
     if (pathname === '/auth/v1/verify') {
       state.owner = route.request().postDataJSON().token_hash === 'a'.repeat(64) ? ownerA : ownerB;
-      return json({ access_token: 'mock', refresh_token: 'mock-refresh', token_type: 'bearer', expires_in: 3600,
+      return json({ access_token: 'mock', refresh_token: 'mock-refresh', token_type: 'bearer', expires_in: sessionSeconds,
         user: { id: state.owner, aud: 'authenticated', role: 'authenticated', created_at: new Date().toISOString(), app_metadata: {}, user_metadata: {} } });
     }
     if (pathname === '/rest/v1/rpc/save_workout_state') return json({ status: 'saved', revision: 1 });
@@ -25,7 +25,8 @@ async function connect(page) {
     }
     if (pathname === '/rest/v1/nutrition_daily') {
       state.requests.push(Object.fromEntries(searchParams));
-      const days = structuredClone(state.days);
+      const offset = Number(searchParams.get('offset') || 0), limit = Number(searchParams.get('limit') || 1000);
+      const days = structuredClone(state.days).sort((a, b) => b.day.localeCompare(a.day)).slice(offset, offset + limit);
       if (state.hold) { const hold = state.hold; state.hold = null; await hold; }
       return state.fail ? json({ message: 'temporarily unavailable' }, 400) : json(days);
     }
@@ -49,7 +50,30 @@ test('nutrition loads without a button and picks up new imports and corrections 
   await page.clock.runFor(15_100);
   await expect(page.locator('.nutrition-day')).toHaveCount(1);
   await expect(page.locator('.nutrition-day')).toContainText('2 000 ккал');
-  expect(state.requests.every(query => query.user_id === `eq.${ownerA}` && query.limit === '8')).toBe(true);
+  expect(state.requests.every(query => query.user_id === `eq.${ownerA}`)).toBe(true);
+});
+
+test('the whole October stays selectable after new November imports', async ({ page }) => {
+  const state = await connect(page, { time: '2026-10-31T07:00:00Z', sessionSeconds: 40 * 86400 });
+  state.days = Array.from({ length: 31 }, (_, i) => ({ day: `2026-10-${String(31 - i).padStart(2, '0')}`,
+    calories_kcal: 1800 + i, protein_grams: 150, calories_burned: 549, activity_status: 'verified' }));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  const day = date => page.locator(`.nutrition-calendar-day[data-date="${date}"]`);
+  const row = page.locator('.nutrition-day');
+  await expect(row).toHaveAttribute('data-day', '2026-10-31');
+  await expect(page.locator('.nutrition-calendar-day:enabled')).toHaveCount(31);
+  await day('2026-10-01').click();
+  await expect(row).toHaveAttribute('data-day', '2026-10-01');
+  await expect(row).toContainText('1 830 ккал');
+  await page.clock.setSystemTime(new Date('2026-11-01T07:00:00Z'));
+  state.days.unshift({ ...state.days[0], day: '2026-11-01', calories_kcal: 1900 });
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(row).toHaveAttribute('data-day', '2026-10-01');
+  await page.getByRole('button', { name: 'Следующий месяц', exact: true }).click();
+  await expect(row).toHaveAttribute('data-day', '2026-11-01');
+  await page.getByRole('button', { name: 'Предыдущий месяц', exact: true }).click();
+  await expect(day('2026-10-01')).toBeEnabled();
+  await expect(page.locator('.nutrition-calendar-day:enabled')).toHaveCount(31);
 });
 
 test('offline and server failures preserve displayed days and recover automatically', async ({ page, context }) => {

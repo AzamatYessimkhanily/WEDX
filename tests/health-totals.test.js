@@ -6,6 +6,19 @@ import { dailyMetrics } from '../src/features/integrations/metrics.js';
 const total = (value, unit = 'g', date = '2026-10-23') => ({ date, value, unit });
 const snapshot = changes => ({ version: 5, activitySelection: { mode: 'single-source', source: 'Apple Watch (Test)' }, source: 'apple-health', aggregation: 'day', startDate: '2026-10-16', endDate: '2026-10-23',
   energyTotals: [total(1321, 'kcal')], proteinTotals: [total(58)], carbsTotals: [total(121)], fatTotals: [total(70)], activityTotals: [total(90, 'kcal')], ...changes });
+
+test('a full October import retains all 31 days and ignores the partial buffer day', () => {
+  const dates = ['2026-09-30', ...Array.from({ length: 31 }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`)];
+  const monthly = snapshot({ startDate: '2026-10-01', endDate: '2026-10-31',
+    energyTotals: dates.map(day => total(2000, 'kcal', day)), proteinTotals: dates.map(day => total(150, 'g', day)),
+    carbsTotals: [], fatTotals: [], activityTotals: dates.map(day => total(549, 'kcal', day)) });
+  const { days } = summarizeDailyTotals(monthly);
+  assert.equal(days.length, 31);
+  assert.equal(days[0].date, '2026-10-01'); assert.equal(days.at(-1).date, '2026-10-31');
+  assert.ok(days.every(day => day.caloriesBurned === 549 && day.caloriesKcal === 2000));
+  assert.throws(() => summarizeDailyTotals({ ...monthly, startDate: '2026-09-30' }), /31 календарного дня/);
+});
+
 test('native daily totals retain provenance, precision and the seven requested metrics', () => {
   const result = summarizeDailyTotals(snapshot());
   assert.deepEqual(result, { skipped: [], days: [{ date: '2026-10-23', caloriesKcal: 1321, proteinGrams: 58,
