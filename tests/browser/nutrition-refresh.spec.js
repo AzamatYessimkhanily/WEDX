@@ -76,6 +76,33 @@ test('the whole October stays selectable after new November imports', async ({ p
   await expect(page.locator('.nutrition-calendar-day:enabled')).toHaveCount(31);
 });
 
+test('missing remaining calories explain the dated goal or activity gap and recalculate after correction', async ({ page }) => {
+  const state = await connect(page);
+  state.goals = [{ effective_from: '2026-10-16', base_calorie_goal: 2018, include_activity: true }];
+  const earlier = { day: '2026-10-01', calories_kcal: 1500, protein_grams: 100, calories_burned: 100, activity_status: 'verified' };
+  state.days.push(earlier);
+  await page.clock.runFor(15_100);
+  await page.locator('.nutrition-calendar-day[data-date="2026-10-01"]').click();
+  const remaining = page.locator('.nutrition-remaining .metric-value');
+  const explanation = page.locator('.nutrition-explanation');
+  await expect(remaining).toHaveText('—');
+  await expect(explanation).toContainText('норма, действовавшая в эту дату');
+  // An explicit earlier goal fixes the gap; a later goal must not fill it silently.
+  const historical = { effective_from: '2026-10-01', base_calorie_goal: 2200, include_activity: true };
+  state.goals.push(historical);
+  await page.clock.runFor(15_100);
+  await expect(remaining).toHaveText('800');
+  await expect(explanation).toHaveCount(0);
+  earlier.calories_burned = null; earlier.activity_status = 'no_data';
+  await page.clock.runFor(15_100);
+  await expect(remaining).toHaveText('—');
+  await expect(explanation).toContainText('данные об активности');
+  historical.include_activity = false;
+  await page.clock.runFor(15_100);
+  await expect(remaining).toHaveText('700');
+  await expect(explanation).toHaveCount(0);
+});
+
 test('offline and server failures preserve displayed days and recover automatically', async ({ page, context }) => {
   const state = await connect(page);
   state.fail = true;

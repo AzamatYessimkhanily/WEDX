@@ -163,7 +163,16 @@ class NutritionPanel extends HTMLElement {
       protein.append(heading, progress, text('small', `${format(m.protein_per_kg)} г/кг × ${format(m.protein_weight_kg)} кг`));
       if (status.lowProtein) protein.classList.add('low');
     } else protein.append(text('span', m.protein_weight_kg == null ? 'Для цели белка добавь замер веса в «Прогрессе».' : 'Белок ещё не передан.'));
-    row.append(energy, macros, protein, goal);
+    row.append(energy);
+    if (m.calories_remaining == null) {
+      const reason = m.base_calorie_goal == null
+        ? 'Для расчёта «Осталось» нужна дневная норма, действовавшая в эту дату.'
+        : m.calories_consumed == null
+          ? 'Для расчёта «Осталось» нужны данные о съеденных калориях за этот день.'
+          : 'Для расчёта «Осталось» нужны данные об активности за этот день.';
+      const note = text('p', reason); note.className = 'nutrition-explanation'; row.append(note);
+    }
+    row.append(macros, protein, goal);
     if (m.activity_status === 'health_total') {
       const note = text('p', 'Старый импорт мог завышать активность. ');
       const update = text('a', 'Обновить команду'); update.href = healthShortcutUrl;

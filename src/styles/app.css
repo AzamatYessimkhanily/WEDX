@@ -438,6 +438,7 @@
   .nutrition-date h4{font-size:20px;}
   .nutrition-date>span{font-size:13px;color:var(--muted);}
   .nutrition-day{font-variant-numeric:tabular-nums;}
+  .nutrition-explanation{margin:0 0 12px;font-size:12px;line-height:1.45;color:var(--muted);}
   .nutrition-energy,.nutrition-macros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 10px;}
   .nutrition-metric{min-width:0;text-align:center;}
   .nutrition-metric dt{font-size:12px;color:var(--muted);margin-bottom:7px;}
