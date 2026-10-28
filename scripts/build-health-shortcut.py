@@ -100,14 +100,15 @@ def build(token='', mock=False):
             'WFActionParameterFilterTemplates': rows,
         })
 
-    # Extract source names in one native action, without looping over thousands
-    # of intervals. Match a Watch name and select the most recently used Watch.
+    # Source discovery only needs a small recent sample. Do not materialize an
+    # entire week of raw intervals just to read their source names on iPhone.
+    # Daily totals below still query the full period without a result limit.
     # An empty match stays empty: never fall back to summing every source.
     if mock:
         sources = add('gettext', 'Text', WFTextActionText='iPhone\nApple Watch (Test)\nYAZIO')
     else:
         recent = add('filter.health.quantity', 'Health Samples', WFContentItemFilter=health_filter('Active Calories'),
-                     WFContentItemLimitEnabled=False, WFHKSampleFilteringFillMissing=False,
+                     WFContentItemLimitEnabled=True, WFContentItemLimitNumber=100, WFHKSampleFilteringFillMissing=False,
                      WFContentItemSortProperty='Start Date', WFContentItemSortOrder='Latest First')
         names = add('properties.health.quantity', 'Source', WFContentItemPropertyName='Source', WFInput=recent)
         sources = add('text.combine', 'Combined Text', text=text(names), WFTextSeparator='New Lines')

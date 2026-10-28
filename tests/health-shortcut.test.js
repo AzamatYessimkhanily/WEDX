@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 
-test('the phone selects one Watch source before grouping activity, without raw-record loops', () => {
+test('Watch discovery is bounded while all daily totals retain their full period', () => {
   const script = `import importlib.util,json
 s=importlib.util.spec_from_file_location('shortcut','scripts/build-health-shortcut.py')
 m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
@@ -16,7 +16,15 @@ print(json.dumps(m.build()))`;
   const [discovery, totals] = activity.map(a => a.WFWorkflowActionParameters);
   assert.equal(discovery.WFHKSampleFilteringGroupBy, undefined);
   assert.equal(discovery.WFContentItemSortOrder, 'Latest First');
-  assert.equal(discovery.WFContentItemLimitEnabled, false);
+  assert.equal(discovery.WFContentItemLimitEnabled, true);
+  assert.equal(discovery.WFContentItemLimitNumber, 100);
+  // A discovery cap must never truncate calories, protein or other daily sums.
+  const dailyQueries = queries.filter(a => a.WFWorkflowActionParameters.WFHKSampleFilteringGroupBy === 'Day');
+  assert.equal(dailyQueries.length, 5);
+  for (const query of dailyQueries) {
+    assert.equal(query.WFWorkflowActionParameters.WFContentItemLimitEnabled, false);
+    assert.equal(query.WFWorkflowActionParameters.WFContentItemLimitNumber, undefined);
+  }
   const source = rows(activity[1]).find(r => r.Property === 'Source');
   assert.equal(source.Operator, 4); // Exact selected source, not every tracker.
   assert.equal(source.Values.Enumeration.WFSerializationType, 'WFTextTokenAttachment');
