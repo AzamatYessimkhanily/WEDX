@@ -7,7 +7,7 @@ test('the phone selects one Watch source before grouping activity, without raw-r
 s=importlib.util.spec_from_file_location('shortcut','scripts/build-health-shortcut.py')
 m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 print(json.dumps(m.build()))`;
-  const workflow = JSON.parse(execFileSync('python3', ['-c', script], { encoding: 'utf8' }));
+  const workflow = JSON.parse(execFileSync('python3', ['-B', '-c', script], { encoding: 'utf8' }));
   const actions = workflow.WFWorkflowActions;
   const queries = actions.filter(a => a.WFWorkflowActionIdentifier === 'is.workflow.actions.filter.health.quantity');
   const rows = a => a.WFWorkflowActionParameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates;
