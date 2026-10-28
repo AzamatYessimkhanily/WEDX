@@ -119,7 +119,7 @@ test('an old request cannot overwrite another account after the panel is replace
 test('nutrition dashboard exposes seven metrics, hides setup and retains dated goal controls on mobile', async ({ page }) => {
   const state = await connect(page);
   state.days[0] = { ...state.days[0], carbs_grams: 190.5, fat_grams: 45.25,
-    calories_burned: 200, activity_status: 'health_total', nutrition_origin: 'apple-health', metric_synced_at: { carbs: '2026-10-22T07:00:00Z' } };
+    calories_burned: 200, activity_status: 'verified', nutrition_origin: 'apple-health', metric_synced_at: { carbs: '2026-10-22T07:00:00Z' } };
   await page.clock.runFor(15_100);
   const row = page.locator('.nutrition-day');
   await expect(row.locator('dt')).toHaveCount(7);
@@ -159,7 +159,7 @@ test('calendar selects real days, keeps selection on sync, marks calorie and pro
   const state = await connect(page);
   state.goals = [{ effective_from: '2026-09-01', base_calorie_goal: 2018, include_activity: true, protein_per_kg: 2 }];
   state.days = Array.from({ length: 8 }, (_, i) => ({ day: `2026-10-${22 - i}`, calories_kcal: 2000, protein_grams: 170,
-    carbs_grams: 210, fat_grams: 70, calories_burned: 200, activity_status: 'health_total', updated_at: '2026-10-22T07:00:00Z' }));
+    carbs_grams: 210, fat_grams: 70, calories_burned: 200, activity_status: 'verified', updated_at: '2026-10-22T07:00:00Z' }));
   state.days[0].protein_grams = 50;
   state.days[2].calories_kcal = 2500;
   state.days[3].protein_grams = 120;
@@ -204,4 +204,19 @@ test('calendar selects real days, keeps selection on sync, marks calorie and pro
   await expect(page.getByRole('button', { name: 'Предыдущий месяц', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Следующий месяц', exact: true }).click();
   await expect(row).toHaveAttribute('data-day', '2026-10-22');
+});
+
+test('unfiltered activity prompts an update, then a corrected Watch import replaces it', async ({ page }) => {
+  const state = await connect(page);
+  state.goals = [{ effective_from: '2026-10-01', base_calorie_goal: 2018, include_activity: true }];
+  Object.assign(state.days[0], { calories_burned: 775, activity_status: 'health_total' });
+  await page.clock.runFor(15_100);
+  const activity = page.locator('.nutrition-metric').filter({ has: page.locator('dt', { hasText: /^Активность$/ }) });
+  await expect(activity.locator('.metric-value')).toHaveText('—');
+  await expect(page.getByRole('link', { name: 'Обновить команду', exact: true })).toBeVisible();
+  Object.assign(state.days[0], { calories_burned: 549, activity_status: 'verified' });
+  await page.clock.runFor(15_100);
+  await expect(activity.locator('.metric-value')).toHaveText('549');
+  await expect(page.locator('.nutrition-remaining .metric-value')).toHaveText('467');
+  await expect(page.getByRole('link', { name: 'Обновить команду', exact: true })).toHaveCount(0);
 });

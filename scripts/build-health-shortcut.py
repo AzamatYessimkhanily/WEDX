@@ -64,7 +64,7 @@ def build(token='', mock=False):
         return add('format.date', 'Formatted Date', WFDate=text(input), WFDateFormatStyle='Custom', WFDateFormat=pattern, WFLocale='en_US_POSIX')
 
     add('comment', WFCommentActionText='WEDX · Apple «Здоровье». Дневные итоги за 8 дней: съеденные ккал, белок, углеводы, жиры и активная энергия. '
-        'Используется встроенная группировка «По дням», без перебора каждой записи. Пропуски не заполняются нулями. '
+        'Активность берётся только с Apple Watch: команда сама находит название часов и фильтрует источник до группировки. '
         'Первый запуск — на разблокированном iPhone. Разреши чтение пяти показателей и отправку в свой WEDX. '
         'После запуска сверь сегодняшний день с «Здоровьем». Дневная норма задаётся отдельно в WEDX. Команда ничего не записывает в «Здоровье».')
     key = add('gettext', 'Text', WFTextActionText=token or 'ВСТАВЬ_КЛЮЧ_ИЗ_WEDX')
@@ -85,19 +85,48 @@ def build(token='', mock=False):
         fixture_text = add('gettext', 'Text', WFTextActionText=json.dumps(data))
         fixtures = add('detect.dictionary', 'Dictionary', WFInput=fixture_text)
 
+    def health_filter(label, source=None):
+        rows = [
+            {'Bounded': True, 'Operator': 4, 'Property': 'Type', 'Removable': False,
+             'Values': {'Enumeration': state('WFStringSubstitutableState', label)}},
+            {'Bounded': True, 'Operator': 1001, 'Property': 'Start Date', 'Removable': True,
+             'Values': {'Number': '8', 'Unit': 16}},
+        ]
+        if source is not None:
+            rows.append({'Bounded': True, 'Operator': 4, 'Property': 'Source', 'Removable': True,
+                         'Values': {'Enumeration': source}})
+        return state('WFContentPredicateTableTemplate', {
+            'WFActionParameterFilterPrefix': 1, 'WFContentPredicateBoundedDate': False,
+            'WFActionParameterFilterTemplates': rows,
+        })
+
+    # Extract source names in one native action, without looping over thousands
+    # of intervals. Match a Watch name and select the most recently used Watch.
+    # An empty match stays empty: never fall back to summing every source.
+    if mock:
+        sources = add('gettext', 'Text', WFTextActionText='iPhone\nApple Watch (Test)\nYAZIO')
+    else:
+        recent = add('filter.health.quantity', 'Health Samples', WFContentItemFilter=health_filter('Active Calories'),
+                     WFContentItemLimitEnabled=False, WFHKSampleFilteringFillMissing=False,
+                     WFContentItemSortProperty='Start Date', WFContentItemSortOrder='Latest First')
+        names = add('properties.health.quantity', 'Source', WFContentItemPropertyName='Source', WFInput=recent)
+        sources = add('text.combine', 'Combined Text', text=text(names), WFTextSeparator='New Lines')
+    watches = add('text.match', 'Matches', text=text(sources),
+                  WFMatchTextPattern=r'(?im)^[^\r\n]*(?:\bwatch\b|часы)[^\r\n]*$', WFMatchTextCaseSensitive=False)
+    choose = str(uuid.uuid4()).upper()
+    add('conditional', GroupingIdentifier=choose, WFControlFlowMode=0, WFCondition=100, WFInput={'Type': 'Variable', 'Variable': watches})
+    add('getitemfromlist', 'Item from List', WFItemSpecifier='First Item', WFInput=watches)
+    add('conditional', GroupingIdentifier=choose, WFControlFlowMode=1)
+    add('gettext', 'Text', WFTextActionText='')
+    watch = add('conditional', 'If Result', GroupingIdentifier=choose, WFControlFlowMode=2)
+    selection = add('dictionary', 'Dictionary', WFItems=dictionary([
+        ('mode', 'single-source', False), ('source', watch, False)]))
+
     def samples(kind, label):
         if mock:
             found = get_key(kind, fixtures)
         else:
-            filters = state('WFContentPredicateTableTemplate', {
-                'WFActionParameterFilterPrefix': 1, 'WFContentPredicateBoundedDate': False,
-                'WFActionParameterFilterTemplates': [
-                    {'Bounded': True, 'Operator': 4, 'Property': 'Type', 'Removable': False,
-                     'Values': {'Enumeration': state('WFStringSubstitutableState', label)}},
-                    {'Bounded': True, 'Operator': 1001, 'Property': 'Start Date', 'Removable': True,
-                     'Values': {'Number': '8', 'Unit': 16}},
-                ],
-            })
+            filters = health_filter(label, watch if kind == 'activity' else None)
             found = add('filter.health.quantity', 'Health Samples', WFContentItemFilter=filters,
                         WFContentItemLimitEnabled=False, WFHKSampleFilteringFillMissing=False, WFHKSampleFilteringGroupBy='Day',
                         WFContentItemSortProperty='Start Date', WFContentItemSortOrder='Oldest First')
@@ -123,11 +152,16 @@ def build(token='', mock=False):
     protein = samples('protein', 'Protein')
     carbs = samples('carbs', 'Carbohydrates')
     fat = samples('fat', 'Total Fat')
-    activity = samples('activity', 'Active Calories')
+    activity_block = str(uuid.uuid4()).upper()
+    add('conditional', GroupingIdentifier=activity_block, WFControlFlowMode=0, WFCondition=100, WFInput={'Type': 'Variable', 'Variable': watch})
+    samples('activity', 'Active Calories')
+    add('conditional', GroupingIdentifier=activity_block, WFControlFlowMode=1)
+    add('gettext', 'Text', WFTextActionText='')
+    activity = add('conditional', 'If Result', GroupingIdentifier=activity_block, WFControlFlowMode=2)
     payload = add('gettext', 'Text', WFTextActionText=text(
-        '{"version":4,"source":"apple-health","aggregation":"day","startDate":"', start,
+        '{"version":5,"source":"apple-health","aggregation":"day","startDate":"', start,
         '\",\"endDate\":\"', end, '\",\"energyTotals\":[', energy, '],\"proteinTotals\":[', protein,
-        '],\"carbsTotals\":[', carbs, '],\"fatTotals\":[', fat, '],\"activityTotals\":[', activity, ']}'))
+        '],\"carbsTotals\":[', carbs, '],\"fatTotals\":[', fat, '],\"activityTotals\":[', activity, '],\"activitySelection\":', selection, '}'))
     if not mock:
         # File bodies require a direct attachment; wrapping it in text() sends no body.
         response = add('downloadurl', 'Contents of URL', WFURL=ENDPOINT, WFHTTPMethod='POST', WFHTTPBodyType='File',

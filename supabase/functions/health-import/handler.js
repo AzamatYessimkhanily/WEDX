@@ -34,8 +34,8 @@ export function createHandler(rpc) {
       if (!text.trim()) return emptyBody();
       const input = JSON.parse(text);
       let body, skipped = [];
-      if ([2, 3, 4].includes(input?.version)) {
-        const summary = input.version === 4 ? summarizeDailyTotals(input) : summarizeSamples(input);
+      if ([2, 3, 4, 5].includes(input?.version)) {
+        const summary = input.version >= 4 ? summarizeDailyTotals(input) : summarizeSamples(input);
         skipped = summary.skipped;
         if (!summary.days.length) return reply({ status: 'no_data', records: 0,
           message: 'Нет дней с калориями и белком. Проверь доступ команды к пищевой энергии и белку. Прежние данные WEDX сохранены.' }, 200);
@@ -56,8 +56,13 @@ export function createHandler(rpc) {
         return reply({ error: status === 401 ? 'Invalid integration token' : status === 409 ? 'Request id already used' : status === 429 ? 'Too many imports' : 'Import temporarily unavailable',
           message: status === 401 ? 'Ключ отключён или неверен. Создай новый ключ в WEDX.' : status === 429 ? 'Слишком частые запуски. Повтори через минуту.' : 'Питание не сохранено. Повтори импорт позже.' }, status);
       }
-      return reply({ ...data, skippedDays: skipped,
-        message: `Дней обновлено: ${data.records}.${skipped.length ? ` Пропущено дней без одного из показателей: ${skipped.length}.` : ''} Сверь показатели в WEDX с ${input.version === 4 ? '«Здоровьем»' : 'YAZIO'}.` }, 200);
+      const notice = input.version === 4
+        ? ' Обнови команду «WEDX — Здоровье»: старый импорт завышает активность. Питание сохранено, расход не изменён.'
+        : input.version === 5 && !input.activitySelection.source
+          ? ' Apple Watch не найдены. Разреши чтение активной энергии и синхронизируй часы с iPhone.'
+          : ` Сверь показатели в WEDX с ${input.version >= 4 ? '«Здоровьем»' : 'YAZIO'}.`;
+      return reply({ ...data, skippedDays: skipped, updateRequired: input.version === 4,
+        message: `Дней обновлено: ${data.records}.${skipped.length ? ` Пропущено дней без одного из показателей: ${skipped.length}.` : ''}${notice}` }, 200);
     } catch (error) {
       if (error instanceof SampleImportError) return reply({ error: 'Invalid health samples', message: error.message }, 400);
       if (error instanceof SyntaxError) return reply({ error: 'invalid_json', message: 'Команда отправила данные в неверном формате JSON. Установи исправленную команду WEDX; ключ менять не нужно.' }, 400);

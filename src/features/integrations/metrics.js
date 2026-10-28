@@ -6,7 +6,7 @@ export function dailyMetrics(day, goals = [], weights = []) {
     .sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0];
   const number = value => value == null ? null : Number(value);
   const consumed = number(day.calories_kcal), protein = number(day.protein_grams);
-  const burned = ['verified', 'health_total'].includes(day.activity_status) ? number(day.calories_burned) : null;
+  const burned = day.activity_status === 'verified' ? number(day.calories_burned) : null;
   const base = number(goal?.base_calorie_goal);
   // Future measurements must not silently change earlier targets.
   const weight = weights.filter(w => w.d <= day.day && Number.isFinite(w.w) && w.w >= 30 && w.w <= 300)

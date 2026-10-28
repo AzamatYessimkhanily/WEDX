@@ -70,7 +70,7 @@ test('iPhone setup installs a public template, scopes the secret to nutrition, a
   await expect(page.getByRole('link', { name: 'Установить команду', exact: true })).toBeHidden();
   await page.getByText('Настройки', { exact: true }).click();
   const install = page.getByRole('link', { name: 'Установить команду', exact: true });
-  await expect(install).toHaveAttribute('href', 'https://www.icloud.com/shortcuts/6df804e55175488686de84f1b0d80a9f');
+  await expect(install).toHaveAttribute('href', '/shortcuts/' + encodeURIComponent('WEDX — Здоровье.shortcut') + '?v=5');
   await expect(install).not.toHaveAttribute('download');
   const run = page.getByRole('link', { name: 'Запустить на iPhone', exact: true });
   expect(new URL(await run.getAttribute('href')).searchParams.get('name')).toBe('WEDX — Здоровье');

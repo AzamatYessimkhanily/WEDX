@@ -1,3 +1,4 @@
+import { healthShortcutUrl } from './health-shortcut.js';
 import { supabase, healthImportUrl } from '../../data/supabase.js';
 import { nutritionPanel } from './nutrition.js';
 import { coachPanel } from '../coach/panel.js';
@@ -25,14 +26,14 @@ export function integrationsPanel(user, { open = false, getWeights = () => [] } 
   if (!open) panel.addEventListener('toggle', () => { if (panel.open) nutrition.refresh(); });
   const section = document.createElement('section'); section.className = 'health-setup';
   section.append(text('h4', 'Apple Health'));
-  const install = link('Установить команду', 'https://www.icloud.com/shortcuts/6df804e55175488686de84f1b0d80a9f');
+  const install = link('Установить команду', healthShortcutUrl);
   install.target = '_blank'; install.rel = 'noopener noreferrer';
   section.append(install, link('Запустить на iPhone', `shortcuts://run-shortcut?name=${encodeURIComponent('WEDX — Здоровье')}`));
   const help = document.createElement('details'); help.append(text('summary', 'Как подключить'));
   const steps = document.createElement('ol');
   for (const step of [
     'Скопируй ключ из старой команды WEDX или создай ниже.',
-    'Установи «WEDX — Здоровье», вставь ключ и разреши чтение данных.',
+    'Открой скачанный файл «WEDX — Здоровье», замени прежнюю команду, вставь ключ и разреши чтение данных.',
     'В «Команды» → «Автоматизация» выбери YAZIO → «Закрывается» → «Запускать немедленно» → «WEDX — Здоровье».',
   ]) steps.append(text('li', step));
   help.append(steps);

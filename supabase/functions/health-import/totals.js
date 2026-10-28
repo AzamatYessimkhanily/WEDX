@@ -14,10 +14,19 @@ const shape = value => value == null ? 'пусто' : Array.isArray(value) ? 'с
 // These are native Find Health Samples / Group by Day results, NOT raw samples.
 // Each day must occur at most once per metric. Never sum duplicate daily totals.
 export function summarizeDailyTotals(body) {
-  if (body?.version !== 4 || body.source !== 'apple-health' || body.aggregation !== 'day'
+  if (![4, 5].includes(body?.version) || body.source !== 'apple-health' || body.aggregation !== 'day'
     || !validDate(body.startDate) || !validDate(body.endDate)) fail('Неверный формат дневных итогов. Установи «WEDX — Здоровье».');
   const span = (Date.parse(body.endDate) - Date.parse(body.startDate)) / 86400000;
   if (span < 0 || span > 30) fail('За один раз можно передать до 31 календарного дня.');
+  const selected = body.version === 5;
+  if (selected && (body.activitySelection?.mode !== 'single-source'
+    || typeof body.activitySelection.source !== 'string' || body.activitySelection.source.length > 200
+    || (body.activitySelection.source !== '' && !/(?:\bwatch\b|часы)/iu.test(body.activitySelection.source)))) {
+    fail('Не удалось определить Apple Watch. Проверь доступ команды к активной энергии.');
+  }
+  if (selected && !body.activitySelection.source && body.activityTotals?.length) {
+    fail('Активность пришла без источника Apple Watch. Обнови команду WEDX.');
+  }
   const groups = new Map();
   for (const kind of ['energy', 'protein', 'carbs', 'fat', 'activity']) {
     const rows = body[kind + 'Totals'];
@@ -45,8 +54,13 @@ export function summarizeDailyTotals(body) {
   const days = [], skipped = [];
   for (const day of [...groups.values()].sort((a, b) => a.date.localeCompare(b.date))) {
     if (day.energy == null || day.protein == null) { skipped.push(day.date); continue; }
-    const row = { date: day.date, caloriesKcal: day.energy, proteinGrams: day.protein, nutritionOrigin: 'apple-health',
-      activityStatus: day.activity == null ? 'no_data' : 'health_total', caloriesBurned: day.activity ?? null };
+    const row = { date: day.date, caloriesKcal: day.energy, proteinGrams: day.protein, nutritionOrigin: 'apple-health' };
+    // V4 groups all Health samples, which can double-count watch/phone/app data.
+    // Continue importing food, but never overwrite a corrected Watch total.
+    if (selected) {
+      row.activityStatus = day.activity == null ? 'no_data' : 'verified';
+      row.caloriesBurned = day.activity ?? null;
+    }
     if (day.carbs != null) row.carbsGrams = day.carbs;
     if (day.fat != null) row.fatGrams = day.fat;
     days.push(row);

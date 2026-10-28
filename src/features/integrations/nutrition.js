@@ -1,3 +1,4 @@
+import { healthShortcutUrl } from './health-shortcut.js';
 import { supabase } from '../../data/supabase.js';
 import { dailyMetrics, nutritionStatus } from './metrics.js';
 import { localDay, nutritionCalendar } from './calendar.js';
@@ -164,12 +165,17 @@ class NutritionPanel extends HTMLElement {
       if (status.lowProtein) protein.classList.add('low');
     } else protein.append(text('span', m.protein_weight_kg == null ? 'Для цели белка добавь замер веса в «Прогрессе».' : 'Белок ещё не передан.'));
     row.append(energy, macros, protein, goal);
+    if (m.activity_status === 'health_total') {
+      const note = text('p', 'Старый импорт мог завышать активность. ');
+      const update = text('a', 'Обновить команду'); update.href = healthShortcutUrl;
+      note.append(update); row.append(note);
+    }
     const meta = document.createElement('details'); meta.className = 'nutrition-meta'; meta.dataset.day = day.day; meta.open = Boolean(metaOpen);
     meta.append(text('summary', day.updated_at ? `Обновлено ${timeLabel(day.updated_at)}` : 'О данных'));
     const activityNotes = {
       unknown: 'Активность ещё не передана.', no_data: 'Нет данных об активности.',
       multiple_sources: 'Расход не определён: несколько источников активности.', overlap: 'Расход не определён: записи активности пересекаются.',
-      health_total: 'Активность: дневной итог «Здоровья».', verified: 'Активность: записи YAZIO.',
+      health_total: 'Расход нужно повторно получить из одного источника.', verified: 'Активность: один источник «Здоровья».',
     };
     meta.append(text('p', activityNotes[m.activity_status]));
     if (m.protein_weight_date) meta.append(text('p', `Белок: ориентир ${format(m.protein_per_kg)} г/кг, замер веса от ${dateLabel(m.protein_weight_date)}.`));
