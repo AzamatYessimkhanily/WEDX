@@ -81,6 +81,11 @@ test('empty native Source preserves the batch, isolates unknown origins and does
   const unambiguous=summarizeSleep(rows.filter(s=>s.stage!=='deep'),'').episodes[0];
   assert.equal(unambiguous.asleepMinutes,480);assert.equal(unambiguous.vitals.heart_rate,null);
   assert.equal(unambiguous.samples.some(s=>s.metric==='heart_rate'),true);
+  const namedVital=(await normalize([sample(60,'2026-10-28T02:01:00+05:00','2026-10-28T02:01:00+05:00',{metric:'heart_rate',unit:'count/min',source:'Known Watch'})]))[0];
+  const candidates=summarizeSleep([...rows.filter(s=>s.stage!=='deep'),namedVital],'').episodes[0];
+  assert.equal(candidates.samples.some(s=>s.source_name==='Known Watch'),true);
+  assert.equal(candidates.vitals.heart_rate,null);
+  assert.equal(summarizeSleep([...rows,namedVital],source).episodes[0].samples.some(s=>s.source_name==='Known Watch'),false);
 });
 test('endpoint accepts missing sources and logs only static rejection reasons',async()=>{
   const calls=[],events=[];

@@ -73,7 +73,7 @@ export function summarizeSleep(samples, preferredSource = null) {
     const bedMinutes = bed.length ? unionDuration(bed) : null;
     const wakeSample = group.rows.reduce((a,b) => stamp(a.end_at)>stamp(b.end_at)?a:b);
     const day = wakeSample.local_end.slice(0,10);
-    const measurements = samples.filter(s => s.metric !== 'sleep' && s.source_name === source &&
+    const measurements = samples.filter(s => s.metric !== 'sleep' && (!source || s.source_name === source) &&
       sleeping.some(p => stamp(s.start_at) <= p.end && stamp(s.end_at) >= p.start));
     const vitals = {};
     for (const metric of Object.keys(SLEEP_METRICS)) {

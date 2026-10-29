@@ -90,7 +90,8 @@ class SleepPanel extends HTMLElement {
       const stats=episode.vitals[metric];
       if(!stats&&['oxygen','wrist_temperature','breathing_disturbances'].includes(metric))continue;
       const row=el('div',null,'sleep-vital');
-      row.append(el('span',label),el('strong',stats?`${number(stats.mean)} ${unit}`:'Нет данных'));
+      const unlinked=!episode.source&&episode.samples.some(s=>s.metric===metric);
+      row.append(el('span',label),el('strong',stats?`${number(stats.mean)} ${unit}`:unlinked?'Есть отдельные измерения':'Нет данных'));
       if(stats)row.append(el('small',`Мин ${number(stats.min)} · макс ${number(stats.max)} · измерений ${stats.count}`));
       vitals.append(row);
     }
@@ -110,10 +111,10 @@ class SleepPanel extends HTMLElement {
     const list=el('ol',null,'sleep-records');
     for(const row of episode.samples.filter(s=>s.metric==='sleep'))list.append(el('li',`${row.local_start.slice(11,19)}–${row.local_end.slice(11,19)} · ${SLEEP_STAGES[row.stage]}${row.stage==='unknown'?` (${row.raw_value})`:''}`));
     more.append(list);
-    const measurements=el('details');measurements.append(el('summary','Все измерения за этот сон'));
+    const measurements=el('details');measurements.append(el('summary',episode.source?'Все измерения за этот сон':'Измерения за это время'));
     const measurementList=el('ol',null,'sleep-records');
     for(const row of episode.samples.filter(s=>s.metric!=='sleep').sort((a,b)=>a.start_at.localeCompare(b.start_at)))
-      measurementList.append(el('li',`${row.local_start.slice(11,19)} · ${SLEEP_METRICS[row.metric]?.[0]||row.metric}: ${number(row.value)} ${SLEEP_METRICS[row.metric]?.[1]||row.unit||''}`));
+      measurementList.append(el('li',`${row.local_start.slice(11,19)} · ${SLEEP_METRICS[row.metric]?.[0]||row.metric}: ${number(row.value)} ${SLEEP_METRICS[row.metric]?.[1]||row.unit||''}${episode.source?'':` · ${sleepSourceLabel(row.source_name)}`}`));
     if(!measurementList.children.length)measurements.append(el('p','Измерения пока не поступали.'));
     else measurements.append(measurementList);
     more.append(measurements);card.append(more);this.content.append(card);

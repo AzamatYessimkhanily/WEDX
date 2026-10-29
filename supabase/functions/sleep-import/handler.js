@@ -25,7 +25,8 @@ export function createSleepHandler({rpc, getUser, reportError = event => console
       const {data,error}=await rpc('ingest_sleep',{p_token_hash:isToken?await sha256(credential):null,p_owner:owner,p_samples:samples});
       if(error) return reply({message:error.code==='28000'?'Ключ сна неверен или отключён.':error.code==='P0001'?'Слишком частые запуски. Повтори через минуту.':'Сон не сохранён. Повтори импорт позже.'},error.code==='28000'?401:error.code==='P0001'?429:503);
       const missingSource=samples.filter(s=>!s.source_name).length;
-      return reply({...data,message:samples.length?`Сон: сохранено записей ${data.records}.${missingSource?' Часть записей пришла без источника и хранится отдельно.':''} Открой раздел «Сон» в WEDX.`:'Новых записей сна нет. Проверь разрешения «Здоровья» и синхронизацию часов. История сохранена.'});
+      const excluded=samples.length-data.records;
+      return reply({...data,message:samples.length?`Сон: сохранено записей ${data.records} из ${samples.length}.${excluded>0?` Не связаны с загруженным сном: ${excluded}.`:''}${missingSource?' Часть записей пришла без источника и хранится отдельно.':''} Открой раздел «Сон» в WEDX.`:'Новых записей сна нет. Проверь разрешения «Здоровья» и синхронизацию часов. История сохранена.'});
     } catch(error) {
       // Only our static validation reasons are logged: no payload, health values,
       // credentials or native JSON.parse errors (which can contain body excerpts).

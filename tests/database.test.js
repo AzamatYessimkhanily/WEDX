@@ -274,3 +274,25 @@ test('sleep import isolates owners, retries safely, preserves nutrition and stor
   await identity(ownerA);await db.query('delete from public.integration_tokens where token_hash=$1',[hash]);
   await identity('','service_role');await assert.rejects(ingestSleep());
 });
+
+test('night measurements survive a missing sleep source, without importing daytime data or crossing owners',async()=>{
+  const raw=(metric,value,source,start='2026-10-20T02:00:00+05:00',end=start,unit='count/min')=>({metric,value,source,start,end,unit});
+  const normalize=samples=>normalizeSleep({version:1,source:'apple-health',samples});
+  const night=(await normalize([raw('sleep','Core','','2026-10-20T01:00:00+05:00','2026-10-20T07:00:00+05:00','')]))[0];
+  const readings=await normalize([raw('heart_rate',55,'Watch'),raw('hrv',50,'Watch',undefined,undefined,'ms'),
+    raw('respiratory_rate',15,'Watch'),raw('heart_rate',60,'Other device'),
+    raw('heart_rate',160,'Watch','2026-10-20T12:00:00+05:00')]);
+  await identity('','service_role');
+  const ingest=async(owner,rows)=>(await db.query('select public.ingest_sleep(null,$1,$2::jsonb) result',[owner,JSON.stringify(rows)])).rows[0].result;
+  assert.equal((await ingest(ownerA,[night])).records,1);
+  assert.equal((await ingest(ownerB,readings)).records,0);
+  const result=await ingest(ownerA,readings);
+  assert.equal(result.records,4);assert.equal(result.received,5);assert.equal(result.excluded,1);
+  await ingest(ownerA,readings);
+  await identity(ownerA);
+  const stored=(await db.query("select * from public.sleep_samples where local_start like '2026-10-20%'")).rows;
+  assert.equal(stored.length,5);assert.equal(stored.filter(s=>s.source_name==='Watch').length,3);
+  assert.equal(Number(stored.find(s=>s.source_name==='Other device').value),60);
+  await assert.rejects(ingest(ownerA,readings));
+  await identity(ownerB);assert.equal((await db.query("select * from public.sleep_samples where local_start like '2026-10-20%'")).rows.length,0);
+});
