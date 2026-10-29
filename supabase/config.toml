@@ -7,3 +7,7 @@ verify_jwt = false
 [functions.wedx-coach]
 # MCP uses its own revocable OAuth tokens; only management uses Supabase sessions.
 verify_jwt = false
+
+[functions.sleep-import]
+# Checks an import key or a Supabase user session in the handler.
+verify_jwt = false

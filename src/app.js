@@ -113,7 +113,7 @@ function saveNow(){
 }
 /* запись без отметки времени - для данных, пришедших из облака */
 function writeLocal(){try{localStore.write(state);}catch(e){storageOK=false;}}
-function rerender(){if(view==="health")renderHealth();else if(view==="day")renderDay();else renderProgress();}
+function rerender(){if(view==="health"||view==="sleep")renderHealth();else if(view==="day")renderDay();else renderProgress();}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){if(saveT)saveNow();cloudFlush();}});
 window.addEventListener("pagehide",()=>{if(saveT)saveNow();cloudFlush();});
 
@@ -1393,10 +1393,11 @@ function rulesHTML(){
 let view="day";
 const progBtn=document.getElementById("tab-prog");
 const healthBtn=document.getElementById("tab-health");
+const sleepBtn=document.getElementById("tab-sleep");
 const daysBar=document.getElementById("days"),ptabs=document.getElementById("ptabs");
 function renderHealth(){
   const content=el("div","foot health-page");
-  content.appendChild(cloudService.render({health:true}));
+  content.appendChild(cloudService.render({health:view==="health",sleep:view==="sleep"}));
   main.replaceChildren(content);
 }
 function showView(next){
@@ -1405,10 +1406,12 @@ function showView(next){
   progBtn.textContent=(view!=="day")?"Тренировка":"Прогресс";
   healthBtn.classList.toggle("on",view==="health");
   healthBtn.setAttribute("aria-pressed",view==="health");
+  sleepBtn.classList.toggle("on",view==="sleep");
+  sleepBtn.setAttribute("aria-pressed",view==="sleep");
   daysBar.style.display=(view==="day")?"flex":"none";
   ptabs.style.display=(view==="prog")?"flex":"none";
   const url=new URL(location.href);
-  if(view==="health")url.searchParams.set("view","health");else url.searchParams.delete("view");
+  if(view==="health"||view==="sleep")url.searchParams.set("view",view);else url.searchParams.delete("view");
   history.replaceState(history.state,"",url);
   if(view==="prog")renderPTabs();
   rerender();
@@ -1416,6 +1419,7 @@ function showView(next){
 }
 progBtn.onclick=()=>showView(view==="day"?"prog":"day");
 healthBtn.onclick=()=>showView("health");
+sleepBtn.onclick=()=>showView("sleep");
 /* вернулись в приложение на следующий день - форма должна быть чистой */
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState!=="visible")return;
@@ -1454,7 +1458,7 @@ function cloudBox(){return cloudService.render();}
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
   renderDays();
   const h=location.hash.replace("#","");
-  if(new URLSearchParams(location.search).get("view")==="health")showView("health");
+  if(["health","sleep"].includes(new URLSearchParams(location.search).get("view")))showView(new URLSearchParams(location.search).get("view"));
   else if(h.startsWith("prog")){
     const d=h.split("-")[1];if(d&&PROGRAM[d])pview=d;
     progBtn.onclick();

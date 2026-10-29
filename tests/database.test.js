@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { workout, ownerA, ownerB, nutrition } from './fixtures.js';
+import { normalizeSleep } from '../supabase/functions/sleep-import/validation.js';
 
 let db;
 before(async () => {
@@ -237,4 +238,39 @@ test('technique stays in the canonical cloud snapshot and backups without changi
   await save(state, Number(revision) + 1);
   assert.deepEqual((await db.query('select snapshot from public.workout_backups order by revision desc limit 1')).rows[0].snapshot.hist, old.hist);
   assert.equal((await db.query('select * from public.exercise_sets')).rows.length, 2);
+});
+
+test('sleep import isolates owners, retries safely, preserves nutrition and stores only night measurements',async()=>{
+  const raw=(metric,value,start,end,unit='')=>({metric,value,start,end,unit,source:'Apple Watch SE 2'});
+  const rows=await normalizeSleep({version:1,source:'apple-health',samples:[
+    raw('sleep','Core','2026-10-27T23:00:00+05:00','2026-10-28T07:00:00+05:00'),
+    raw('heart_rate',55,'2026-10-28T02:00:00+05:00','2026-10-28T02:00:00+05:00','count/min'),
+    raw('heart_rate',150,'2026-10-28T12:00:00+05:00','2026-10-28T12:00:00+05:00','count/min'),
+  ]});
+  rows[0].device='SE 2';rows[0].source_version='26';rows[0].metadata={HKTimeZone:'Asia/Almaty'};
+  await identity(ownerA);
+  const before=(await db.query('select * from public.nutrition_daily')).rows;
+  const hash='f'.repeat(64);
+  await db.query("insert into public.integration_tokens(user_id,label,source,token_hash) values($1,'Sleep test','apple-health',$2)",[ownerA,hash]);
+  await assert.rejects(db.query('select public.ingest_sleep($1,null,$2::jsonb)',[hash,JSON.stringify(rows)]));
+  await identity('','service_role');
+  const ingestSleep=async(samples=rows,token=hash,owner=null)=>(await db.query('select public.ingest_sleep($1,$2,$3::jsonb) result',[token,owner,JSON.stringify(samples)])).rows[0].result;
+  assert.equal((await ingestSleep()).records,2);
+  assert.equal((await ingestSleep()).records,2);
+  const corrected=structuredClone(rows);corrected[1].value=57;
+  corrected[0].device='';corrected[0].source_version='';corrected[0].metadata={};
+  await ingestSleep(corrected);await assert.rejects(ingestSleep(rows,'invalid'));
+  await identity(ownerA);
+  const stored=(await db.query('select * from public.sleep_samples')).rows;
+  assert.equal(stored.length,2);assert.equal(Number(stored.find(s=>s.metric==='heart_rate').value),57);
+  const sleep=stored.find(s=>s.metric==='sleep');assert.equal(sleep.device,'SE 2');assert.equal(sleep.source_version,'26');
+  assert.deepEqual(sleep.metadata,{HKTimeZone:'Asia/Almaty'});
+  assert.deepEqual((await db.query('select * from public.nutrition_daily')).rows,before);
+  await assert.rejects(db.query('delete from public.sleep_samples'));
+  await identity(ownerB);assert.equal((await db.query('select * from public.sleep_samples')).rows.length,0);
+  await identity('','service_role');
+  await ingestSleep([rows[0]],null,ownerB);
+  await identity(ownerB);assert.equal((await db.query('select * from public.sleep_samples')).rows.length,1);
+  await identity(ownerA);await db.query('delete from public.integration_tokens where token_hash=$1',[hash]);
+  await identity('','service_role');await assert.rejects(ingestSleep());
 });

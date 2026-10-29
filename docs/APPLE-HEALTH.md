@@ -98,3 +98,7 @@ npm run check
 Источники: [YAZIO и Apple Health](https://help.yazio.com/hc/en-us/articles/360018833998-Yazio-and-Apple-Health), [изменение целей YAZIO](https://help.yazio.com/hc/en-us/articles/360002474498-Why-do-my-calorie-goal-and-nutrient-goals-change), [поиск и фильтрация Apple](https://support.apple.com/guide/shortcuts/intro-to-find-and-filter-actions-apd3c845e881/ios), [подписание Apple](https://support.apple.com/guide/shortcuts-mac/run-shortcuts-from-the-command-line-apd455c82f02/mac).
 
 Единицы энергии: [HealthKit largeCalorie](https://developer.apple.com/documentation/healthkit/hkunit/largecalorie()), [HealthKit smallCalorie](https://developer.apple.com/documentation/healthkit/hkunit/smallcalorie()), [Foundation UnitEnergy](https://developer.apple.com/documentation/foundation/unitenergy).
+
+## Сон Apple Watch
+
+Сон подключается отдельной командой **«WEDX — Сон»** во вкладке **Сон**. Работающую команду питания менять не нужно. Для SE 2: стадии, пульс, HRV SDNN и дыхание; вся история и дополнительные показатели доступны через экспорт Apple Health. Инструкция и ограничения — [SLEEP.md](SLEEP.md).

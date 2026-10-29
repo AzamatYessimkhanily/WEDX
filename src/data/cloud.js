@@ -1,3 +1,4 @@
+import { sleepPanel } from '../features/sleep/panel.js';
 import { KEY, localStore } from './local-store.js';
 import { supabase, backendConfigured } from './supabase.js';
 import { createSyncEngine } from './sync-engine.js';
@@ -63,7 +64,7 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     repaint(); engine.sync();
   }
   function repaint() {
-    document.querySelectorAll('[data-cloud-box]').forEach(box => box.replaceWith(render({ health: box.dataset.healthPage === 'true' })));
+    document.querySelectorAll('[data-cloud-box]').forEach(box => box.replaceWith(render({ health: box.dataset.healthPage === 'true', sleep: box.dataset.sleepPage === 'true' })));
   }
   async function importGist() {
     try {
@@ -183,9 +184,17 @@ export function createCloud({ getState, applyState, onChange, toast }) {
     }
     return section;
   }
-  function render({ health = false } = {}) {
+  function render({ health = false, sleep = false } = {}) {
     const box = node('div'); box.className = 'cloudbox'; box.dataset.cloudBox = '';
     box.dataset.healthPage = String(health);
+    box.dataset.sleepPage = String(sleep);
+    if (sleep) {
+      box.append(node('h3', 'Сон'));
+      if (backendConfigured) box.append(deviceConnection());
+      if (user) box.append(sleepPanel(user.id));
+      else if (!backendConfigured) box.append(node('p', 'Подключение сна пока недоступно.'));
+      return box;
+    }
     const status = node('p', labels[currentStatus]); status.dataset.syncStatus = ''; status.setAttribute('role', 'status');
     box.append(node('h3', health ? 'Питание' : 'Данные и подключения'));
     const dataSettings = health && user ? node('details') : box;
