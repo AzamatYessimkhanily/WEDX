@@ -1,7 +1,7 @@
 import './sleep.css';
 import { supabase } from '../../data/supabase.js';
 import { loadSleepHistory } from '../../data/sleep-history.js';
-import { summarizeSleep, SLEEP_STAGES, SLEEP_METRICS } from '../../domain/sleep.js';
+import { summarizeSleep, sleepSourceLabel, SLEEP_STAGES, SLEEP_METRICS } from '../../domain/sleep.js';
 import { importHealthFile } from './export.js';
 
 const el=(tag,value,cls)=>{const n=document.createElement(tag);if(value!=null)n.textContent=value;if(cls)n.className=cls;return n;};
@@ -59,7 +59,7 @@ class SleepPanel extends HTMLElement {
     this.content.replaceChildren();
     if(summary.sources.length>1) {
       const label=el('label','Источник сна'),select=el('select');select.setAttribute('aria-label','Источник сна');
-      for(const source of summary.sources){const option=el('option',source);option.value=source;select.append(option);}
+      for(const source of summary.sources){const option=el('option',sleepSourceLabel(source));option.value=source;select.append(option);}
       select.value=summary.source;select.onchange=()=>{this.source=select.value;this.selected=null;this.render();};label.append(select);this.content.append(label);
     }
     if(!episodes.length){this.content.append(el('p','В этом месяце пока нет записей сна. После ночи с часами запусти «WEDX — Сон» или загрузи экспорт «Здоровья».','sleep-empty'));return;}
@@ -69,7 +69,8 @@ class SleepPanel extends HTMLElement {
     picker.onchange=()=>{this.selected=picker.value;this.render();};this.content.append(picker);
     const card=el('article',null,'sleep-night');card.dataset.day=episode.day;
     card.append(el('p',new Date(episode.day+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'}),'sleep-date'));
-    card.append(el('h2',duration(episode.asleepMinutes),'sleep-duration'),el('p','Время сна по записям часов','sleep-muted'));
+    card.append(el('h2',duration(episode.asleepMinutes),'sleep-duration'),el('p','Время сна по записям «Здоровья»','sleep-muted'));
+    if(!episode.source)card.append(el('p','«Команды» не передали источник этих записей. Они показаны отдельно. Показатели пульса и дыхания не усредняются без подтверждённого источника. Для полной привязки загрузи экспорт «Здоровья» ниже.','sleep-muted'));
     const grid=el('div',null,'sleep-summary');
     for(const [label,value] of [[episode.asleepMinutes==null?'Начало записи':'Начало сна',time(episode.localStart,episode.start)],[episode.asleepMinutes==null?'Конец записи':'Окончание сна',time(episode.localEnd,episode.end)],['Пробуждения',episode.awakenings==null?'—':String(episode.awakenings)],['Бодрствование',duration(episode.awakeMinutes)]]) {
       const tile=el('div');tile.append(el('span',label),el('strong',value));grid.append(tile);
@@ -98,7 +99,7 @@ class SleepPanel extends HTMLElement {
     const more=el('details');more.append(el('summary','Подробности и исходные записи'));
     more.append(el('p',`В постели: ${duration(episode.inBedMinutes)} · до первого отрезка сна: ${duration(episode.latencyMinutes)} · доля сна в постели: ${episode.efficiency==null?'—':number(episode.efficiency)+'%'}`));
     more.append(el('p','Эти показатели рассчитываются только при наличии отдельной записи «В постели». Короткие пробуждения учитываются, только если часы их записали.'));
-    more.append(el('p',`Источник: ${episode.source}. Отдельных записей: ${episode.samples.length}. Дата — день окончания сна. Дневной сон сохраняется отдельным эпизодом.`));
+    more.append(el('p',`Источник: ${sleepSourceLabel(episode.source)}. Отдельных записей: ${episode.samples.length}. Дата — день окончания сна. Дневной сон сохраняется отдельным эпизодом.`));
     const updated=episode.samples.map(s=>s.imported_at).filter(Boolean).sort().at(-1);
     if(updated)more.append(el('p',`Последний импорт: ${new Date(updated).toLocaleString('ru-RU')}`));
     const goals=(this.rows||[]).filter(s=>s.metric==='sleep_goal'&&new Date(s.start_at).getTime()<=episode.end).sort((a,b)=>a.start_at.localeCompare(b.start_at));
@@ -136,7 +137,8 @@ class SleepPanel extends HTMLElement {
   setup() {
     const details=el('details',null,'sleep-setup');details.append(el('summary','Подключить сон с Apple Watch'));
     details.append(el('p','Установи отдельную команду «WEDX — Сон». Она передаёт отрезки сна, пульс, вариабельность пульса, дыхание за последние 3 дня. История в WEDX сохраняется.'));
-    const link=el('a','Скачать «WEDX — Сон»');link.href=`${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — Сон.shortcut')}?v=1`;link.target='_blank';link.rel='noopener';details.append(link);
+    const link=el('a','Скачать «WEDX — Сон»');link.href=`${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — Сон.shortcut')}?v=2`;link.target='_blank';link.rel='noopener';details.append(link);
+    details.append(el('p','Версия 2 показывает ход четырёх этапов и останавливается с сообщением при ошибке. Пульс загружается последним: отдельных измерений может быть много.'));
     const status=el('p');status.setAttribute('role','status');
     const create=button('Создать ключ для сна',async()=>{
       create.disabled=true;

@@ -1,7 +1,7 @@
 import { normalizeSleep, sha256, SleepImportError } from './validation.js';
 const cors = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info', 'Access-Control-Allow-Methods':'POST, OPTIONS', 'Cache-Control':'no-store' };
 const reply = (body,status=200) => Response.json(body,{status,headers:cors});
-export function createSleepHandler({rpc, getUser}) {
+export function createSleepHandler({rpc, getUser, reportError = event => console.warn(JSON.stringify(event))}) {
   return async request => {
     if (request.method==='OPTIONS') return new Response(null,{status:204,headers:cors});
     if (request.method!=='POST') return reply({message:'Нужен POST-запрос.'},405);
@@ -24,8 +24,13 @@ export function createSleepHandler({rpc, getUser}) {
       const samples=await normalizeSleep(JSON.parse(body));
       const {data,error}=await rpc('ingest_sleep',{p_token_hash:isToken?await sha256(credential):null,p_owner:owner,p_samples:samples});
       if(error) return reply({message:error.code==='28000'?'Ключ сна неверен или отключён.':error.code==='P0001'?'Слишком частые запуски. Повтори через минуту.':'Сон не сохранён. Повтори импорт позже.'},error.code==='28000'?401:error.code==='P0001'?429:503);
-      return reply({...data,message:samples.length?`Сон: сохранено записей ${data.records}. Открой раздел «Сон» в WEDX.`:'Новых записей сна нет. Проверь разрешения «Здоровья» и синхронизацию часов. История сохранена.'});
+      const missingSource=samples.filter(s=>!s.source_name).length;
+      return reply({...data,message:samples.length?`Сон: сохранено записей ${data.records}.${missingSource?' Часть записей пришла без источника и хранится отдельно.':''} Открой раздел «Сон» в WEDX.`:'Новых записей сна нет. Проверь разрешения «Здоровья» и синхронизацию часов. История сохранена.'});
     } catch(error) {
+      // Only our static validation reasons are logged: no payload, health values,
+      // credentials or native JSON.parse errors (which can contain body excerpts).
+      reportError({event:'sleep_import_rejected',code:error instanceof SleepImportError?'validation':error instanceof SyntaxError?'invalid_json':'internal',
+        reason:error instanceof SleepImportError?error.message:undefined});
       return reply({message:error instanceof SleepImportError?error.message:error instanceof SyntaxError?'Неверный JSON сна. Обнови команду.':'Сон не сохранён. Повтори позже.'},error instanceof SleepImportError||error instanceof SyntaxError?400:503);
     }
   };

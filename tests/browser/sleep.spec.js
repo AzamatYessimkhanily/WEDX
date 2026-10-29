@@ -63,6 +63,22 @@ test('SE 2 sleep displays separate stages, night vitals and missing data on mobi
   expect(errors).toEqual([]);
 });
 
+test('sleep with missing source stays visible separately and cannot masquerade as Watch vitals',async({page})=>{
+  const rows=await normalizeSleep({version:1,source:'apple-health',samples:[sample('Core'),
+    sample('Deep','2026-10-28T01:00:00+05:00','2026-10-28T04:00:00+05:00',{source:''}),
+    sample(56,'2026-10-28T02:00:00+05:00','2026-10-28T02:00:00+05:00',{metric:'heart_rate',source:'',unit:'count/min'})]});
+  await connect(page,rows);
+  await expect(page.getByLabel('Источник сна',{exact:true})).toHaveValue(source);
+  await expect(page.locator('.sleep-duration')).toHaveText('8 ч 0 мин');
+  await page.getByLabel('Источник сна',{exact:true}).selectOption('');
+  await expect(page.locator('.sleep-duration')).toHaveText('3 ч 0 мин');
+  await expect(page.locator('.sleep-night')).toContainText('«Команды» не передали источник этих записей.');
+  await expect(page.locator('.sleep-vitals')).not.toContainText('56');
+  await page.getByText('Подробности и исходные записи',{exact:true}).click();
+  await page.getByText('Все измерения за этот сон',{exact:true}).click();
+  await expect(page.locator('.sleep-records').last()).toContainText('56 уд/мин');
+});
+
 const xml=`<?xml version="1.0"?><HealthData>
 <Record type="HKQuantityTypeIdentifierDietaryEnergyConsumed" sourceName="YAZIO" value="2000" unit="kcal" startDate="2026-10-27 23:00:00 +0500" endDate="2026-10-27 23:00:00 +0500"/>
 <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Apple Watch SE 2" value="54" unit="count/min" startDate="2026-10-28 02:00:00 +0500" endDate="2026-10-28 02:00:00 +0500"/>

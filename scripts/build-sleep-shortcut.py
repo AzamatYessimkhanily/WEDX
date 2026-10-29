@@ -18,8 +18,8 @@ spec.loader.exec_module(base)
 state, text, variable, dictionary = base.state, base.text, base.variable, base.dictionary
 NAME = 'WEDX — Сон'
 ENDPOINT = 'https://lhwvpjaatsroijgozoro.supabase.co/functions/v1/sleep-import'
-METRICS = [('sleep', 'Sleep'), ('heart_rate', 'Heart Rate'), ('hrv', 'Heart Rate Variability'),
-           ('respiratory_rate', 'Respiratory Rate')]
+METRICS = [('sleep', 'Sleep', 'Стадии сна'), ('hrv', 'Heart Rate Variability', 'Вариабельность пульса'),
+           ('respiratory_rate', 'Respiratory Rate', 'Дыхание'), ('heart_rate', 'Heart Rate', 'Пульс')]
 
 
 def build():
@@ -31,13 +31,14 @@ def build():
                         'WFWorkflowActionParameters': {'UUID': uid, **params}})
         return state('WFTextTokenAttachment', {'Type': 'ActionOutput', 'OutputUUID': uid, 'OutputName': output})
 
-    add('comment', WFCommentActionText='WEDX · Сон. Читает последние 3 дня: стадии сна, пульс, вариабельность пульса, дыхание. '
+    add('comment', WFCommentActionText='WEDX · Сон · версия 2. Читает последние 3 дня: стадии сна, пульс, вариабельность пульса, дыхание. '
         'Первый запуск — на разблокированном iPhone. Разреши чтение показателей и отправку в WEDX. '
         'Источники сохраняются отдельно. Данные «Здоровья» команда не меняет. '
         'Температуру запястья и нарушения дыхания можно добавить через экспорт «Здоровья» в разделе «Сон».')
     key = add('gettext', 'Text', WFTextActionText='ВСТАВЬ_КЛЮЧ_СНА_ИЗ_WEDX')
-    messages = []
-    for metric, label in METRICS:
+    for step, (metric, label, title) in enumerate(METRICS, 1):
+        add('notification', WFNotificationActionTitle=f'WEDX · Сон · {step}/4',
+            WFNotificationActionBody=f'{title}: читаем «Здоровье»…', WFNotificationActionSound=False)
         filters = state('WFContentPredicateTableTemplate', {'WFActionParameterFilterPrefix': 1,
             'WFContentPredicateBoundedDate': False, 'WFActionParameterFilterTemplates': [
                 {'Bounded': True, 'Operator': 4, 'Property': 'Type', 'Removable': False,
@@ -48,6 +49,9 @@ def build():
         found = add('filter.health.quantity', 'Health Samples', WFContentItemFilter=filters,
                     WFContentItemLimitEnabled=False, WFHKSampleFilteringFillMissing=False,
                     WFContentItemSortProperty='Start Date', WFContentItemSortOrder='Oldest First')
+        count = add('count', 'Count', WFCountType='Items', Input=found)
+        add('notification', WFNotificationActionTitle=f'WEDX · Сон · {step}/4 · {title}',
+            WFNotificationActionBody=text('Найдено записей: ', count, '. Подготавливаем отправку.'), WFNotificationActionSound=False)
         loop = str(uuid.uuid4()).upper()
         add('repeat.each', GroupingIdentifier=loop, WFControlFlowMode=0, WFInput=found)
         item = variable('Repeat Item')
@@ -73,8 +77,19 @@ def build():
                        WFRequestVariable=body, WFHTTPHeaders=dictionary([
                            ('Content-Type', 'application/json', False), ('Authorization', text('Bearer ', key), False)]))
         message = add('getvalueforkey', 'Dictionary Value', WFGetDictionaryValueType='Value', WFDictionaryKey='message', WFInput=response)
-        messages.extend([message, '\n'])
-    add('notification', WFNotificationActionTitle='WEDX · Сон', WFNotificationActionBody=text(*messages), WFNotificationActionSound=False)
+        status = add('getvalueforkey', 'Dictionary Value', WFGetDictionaryValueType='Value', WFDictionaryKey='status', WFInput=response)
+        guard = str(uuid.uuid4()).upper()
+        add('conditional', GroupingIdentifier=guard, WFControlFlowMode=0, WFCondition=4,
+            WFInput={'Type': 'Variable', 'Variable': status}, WFConditionalActionString='imported')
+        add('notification', WFNotificationActionTitle=f'WEDX · Сон · {step}/4 · {title}',
+            WFNotificationActionBody=text(message), WFNotificationActionSound=False)
+        add('conditional', GroupingIdentifier=guard, WFControlFlowMode=1)
+        add('notification', WFNotificationActionTitle=f'WEDX · Сон · Не сохранено: {title}',
+            WFNotificationActionBody=text(message, '\nИмпорт остановлен. Уже принятые записи сохранены.'), WFNotificationActionSound=False)
+        add('exit')
+        add('conditional', GroupingIdentifier=guard, WFControlFlowMode=2)
+    add('notification', WFNotificationActionTitle='WEDX · Сон · Готово',
+        WFNotificationActionBody='Все четыре этапа завершены. Открой раздел «Сон» в WEDX.', WFNotificationActionSound=False)
     return {'WFWorkflowName': NAME, 'WFWorkflowClientVersion': '2600.0.4', 'WFWorkflowMinimumClientVersion': 900,
         'WFWorkflowMinimumClientVersionString': '900', 'WFWorkflowHasOutputFallback': False,
         'WFWorkflowIcon': {'WFWorkflowIconGlyphNumber': 61440, 'WFWorkflowIconStartColor': 4251333119},

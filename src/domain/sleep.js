@@ -10,6 +10,7 @@ export const SLEEP_METRICS = {
   wrist_temperature: ['Температура запястья', '°C'], breathing_disturbances: ['Нарушения дыхания · показатель Apple', ''],
 };
 export const isWatch = source => /watch|часы/iu.test(source || '');
+export const sleepSourceLabel = source => source || 'Источник не передан';
 const asleep = stage => ['core', 'deep', 'rem', 'asleep'].includes(stage);
 const stamp = value => new Date(value).getTime();
 const minutes = (a, b) => (b - a) / 60000;
@@ -41,11 +42,11 @@ function unionDuration(rows) {
   return total / 60000;
 }
 
-export function summarizeSleep(samples, preferredSource = '') {
+export function summarizeSleep(samples, preferredSource = null) {
   const sources = [...new Set(samples.filter(s => s.metric === 'sleep').map(s => s.source_name))];
   // Keep sources separate. A user can inspect any other source explicitly.
   const source = sources.includes(preferredSource) ? preferredSource : sources.sort((a,b) =>
-    Number(isWatch(b))-Number(isWatch(a)) ||
+    Number(Boolean(b))-Number(Boolean(a)) || Number(isWatch(b))-Number(isWatch(a)) ||
     Math.max(...samples.filter(s=>s.metric==='sleep'&&s.source_name===b).map(s=>stamp(s.end_at))) -
     Math.max(...samples.filter(s=>s.metric==='sleep'&&s.source_name===a).map(s=>stamp(s.end_at))) || a.localeCompare(b))[0];
   const sleep = samples.filter(s => s.metric === 'sleep' && s.source_name === source)
@@ -76,7 +77,9 @@ export function summarizeSleep(samples, preferredSource = '') {
       sleeping.some(p => stamp(s.start_at) <= p.end && stamp(s.end_at) >= p.start));
     const vitals = {};
     for (const metric of Object.keys(SLEEP_METRICS)) {
-      const values = measurements.filter(s => s.metric===metric && s.value!=null).map(s => Number(s.value));
+      // Unknown origins cannot establish that sleep and vitals share a device.
+      // Retain their raw measurements, but do not present a blended average.
+      const values = source ? measurements.filter(s => s.metric===metric && s.value!=null).map(s => Number(s.value)) : [];
       vitals[metric] = values.length ? { count: values.length, min: Math.min(...values), max: Math.max(...values),
         mean: values.reduce((a,b)=>a+b,0)/values.length } : null;
     }

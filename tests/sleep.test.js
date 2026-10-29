@@ -66,8 +66,30 @@ test('in-bed only is visible without inventing sleep time or awakenings',async()
 });
 test('invalid times, unknown metrics and invalid units reject atomically',async()=>{
   for(const row of [sample('Core','2026-10-28T01:00:00','2026-10-28T02:00:00'),sample('Core','2026-02-30T01:00:00Z','2026-03-02T02:00:00Z'),
-    sample(50,undefined,undefined,{metric:'heart_rate',unit:'kg'}),sample(1,undefined,undefined,{metric:'unknown'}),sample('Core',undefined,undefined,{source:''})])
+    sample(50,undefined,undefined,{metric:'heart_rate',unit:'kg'}),sample(1,undefined,undefined,{metric:'unknown'}),sample('Core',undefined,undefined,{source:[]})])
     await assert.rejects(normalize([sample('Core'),row]));
+});
+test('empty native Source preserves the batch, isolates unknown origins and does not invent vital averages',async()=>{
+  const unknown=sample('Core',undefined,undefined,{source:''});
+  const rows=await normalize([sample('Core'),unknown,unknown,sample('Deep',undefined,undefined,{source:''}),
+    sample(55,'2026-10-28T02:00:00+05:00','2026-10-28T02:00:00+05:00',{metric:'heart_rate',unit:'count/min',source:''})]);
+  assert.equal(rows.length,4);assert.equal(rows[1].source_name,'');assert.equal(rows[1].metadata.wedx_source_missing,true);
+  assert.notEqual(rows[1].sample_key,rows[2].sample_key);
+  assert.equal(summarizeSleep(rows).source,source);
+  const unknownReport=summarizeSleep(rows,'');assert.equal(unknownReport.source,'');
+  assert.equal(unknownReport.episodes[0].stageMinutes.unknown,480);
+  const unambiguous=summarizeSleep(rows.filter(s=>s.stage!=='deep'),'').episodes[0];
+  assert.equal(unambiguous.asleepMinutes,480);assert.equal(unambiguous.vitals.heart_rate,null);
+  assert.equal(unambiguous.samples.some(s=>s.metric==='heart_rate'),true);
+});
+test('endpoint accepts missing sources and logs only static rejection reasons',async()=>{
+  const calls=[],events=[];
+  const handler=createSleepHandler({rpc:async(_name,args)=>{calls.push(args);return{data:{status:'imported',records:args.p_samples.length}};},getUser:async()=>{},reportError:event=>events.push(event)});
+  const request=body=>new Request('https://local/sleep-import',{method:'POST',headers:{Authorization:'Bearer wedx_'+'a'.repeat(64),'Content-Type':'application/json'},body});
+  const response=await handler(request(JSON.stringify(input([sample('Core',undefined,undefined,{source:''})]))));
+  assert.equal(response.status,200);assert.equal((await response.json()).records,1);assert.equal(calls[0].p_samples[0].source_name,'');
+  assert.equal((await handler(request('{"private":"do not log this"'))).status,400);
+  assert.deepEqual(events,[{event:'sleep_import_rejected',code:'invalid_json',reason:undefined}]);
 });
 test('sleep endpoint binds browser requests to verified owner and hashes shortcut credentials',async()=>{
   const calls=[];let userReads=0;
@@ -94,5 +116,12 @@ test('SE 2 shortcut keeps raw intervals, explicit units and source, without sour
   assert.equal(queries[0].WFWorkflowActionParameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates[0].Values.Enumeration.Value,'Sleep');
   const posts=actions.filter(a=>a.WFWorkflowActionIdentifier==='is.workflow.actions.downloadurl');assert.equal(posts.length,4);
   assert.ok(posts.every(a=>a.WFWorkflowActionParameters.WFRequestVariable.WFSerializationType==='WFTextTokenAttachment'));
+  assert.equal(queries.at(-1).WFWorkflowActionParameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates[0].Values.Enumeration.Value,'Heart Rate');
+  assert.equal(actions.filter(a=>a.WFWorkflowActionIdentifier==='is.workflow.actions.exit').length,4);
+  for(const post of posts) {
+    const following=actions.slice(actions.indexOf(post)+1);
+    const guard=following.find(a=>a.WFWorkflowActionIdentifier==='is.workflow.actions.conditional');
+    assert.equal(guard.WFWorkflowActionParameters.WFConditionalActionString,'imported');
+  }
   assert.equal(/wedx_[a-f0-9]{64}/.test(JSON.stringify(workflow)),false);
 });

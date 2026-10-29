@@ -33,7 +33,6 @@ export async function normalizeSleep(input) {
     const duration = Date.parse(end)-Date.parse(start);
     if (duration<0 || duration>(sample.metric==='apnea_event'?90*86400000:48*3600000) || Date.parse(end)>Date.now()+86400000 || Date.parse(start)<Date.parse('2000-01-01')) fail('Неверный период записи сна.');
     const source = shortText(sample.source);
-    if (!source.trim()) fail('В записи нет источника.');
     const metric = sample.metric;
     const rawValue = shortText(String(sample.value ?? ''),500), rawUnit = shortText(String(sample.unit ?? ''),50);
     let stage = null, value = null, unit = null;
@@ -82,9 +81,17 @@ export async function normalizeSleep(input) {
     if (!metadata || Array.isArray(metadata) || typeof metadata!=='object' || JSON.stringify(metadata).length>12000) fail('Слишком большие метаданные записи.');
     const row = { metric, start_at:new Date(start).toISOString(), end_at:new Date(end).toISOString(),
       local_start:start, local_end:end, source_name:source, source_version:shortText(sample.sourceVersion ?? '',100),
-      device:shortText(sample.device ?? '',2000), stage, value, unit, raw_value:rawValue, raw_unit:rawUnit, metadata };
+      device:shortText(sample.device ?? '',2000), stage, value, unit, raw_value:rawValue, raw_unit:rawUnit,
+      metadata:source.trim()?metadata:{...metadata,wedx_source_missing:true} };
+    // Shortcuts can return an empty Source for a real Health sample. Preserve
+    // the absence; never attribute it to a Watch or discard the whole batch.
+    if(!source.trim())row.source_name='';
     // A correction at the same source/interval replaces its former value.
-    row.sample_key = await sha256(JSON.stringify([metric,source,row.start_at,row.end_at,stage==='in_bed'?'in_bed':'measurement']));
+    const identity=[metric,row.source_name,row.start_at,row.end_at,stage==='in_bed'?'in_bed':'measurement'];
+    // Without a source, conflicting values may come from different devices.
+    // Keep both instead of silently treating one as a correction of the other.
+    if(!row.source_name)identity.push(rawValue,rawUnit);
+    row.sample_key = await sha256(JSON.stringify(identity));
     records.set(row.sample_key,row);
   }
   return [...records.values()];
