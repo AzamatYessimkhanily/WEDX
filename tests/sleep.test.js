@@ -106,7 +106,7 @@ test('month history pages beyond the service default without losing records',asy
   const client={from(table){assert.equal(table,'sleep_samples');const q={select(){return q;},eq(k,v){assert.equal(v,'owner');return q;},gte(){return q;},lt(){return q;},order(){return q;},range(a,b){calls.push([a,b]);q.a=a;q.b=b;return q;},abortSignal(){return Promise.resolve({data:rows.slice(q.a,q.b+1),error:null});}};return q;}};
   assert.equal((await loadSleepHistory(client,'owner','2026-10',new AbortController().signal)).length,1100);assert.equal(calls.length,3);
 });
-test('SE 2 shortcut keeps raw intervals, explicit units and source, without source variables or daily grouping',()=>{
+test('SE 2 shortcut keeps raw samples and uses operand-free success guards for all four responses',async()=>{
   const script="import importlib.util,json\ns=importlib.util.spec_from_file_location('s','scripts/build-sleep-shortcut.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(json.dumps(m.build()))";
   const workflow=JSON.parse(execFileSync('python3',['-B','-c',script],{encoding:'utf8'}));
   const actions=workflow.WFWorkflowActions,queries=actions.filter(a=>a.WFWorkflowActionIdentifier==='is.workflow.actions.filter.health.quantity');
@@ -121,7 +121,28 @@ test('SE 2 shortcut keeps raw intervals, explicit units and source, without sour
   for(const post of posts) {
     const following=actions.slice(actions.indexOf(post)+1);
     const guard=following.find(a=>a.WFWorkflowActionIdentifier==='is.workflow.actions.conditional');
-    assert.equal(guard.WFWorkflowActionParameters.WFConditionalActionString,'imported');
+    const params=guard.WFWorkflowActionParameters;
+    assert.equal(params.WFCondition,100);
+    assert.equal(params.WFConditionalActionString,undefined);
+    assert.equal(params.WFNumberValue,undefined);
+    const match=following.find(a=>a.WFWorkflowActionParameters.UUID===params.WFInput.Variable.Value.OutputUUID);
+    assert.equal(match.WFWorkflowActionIdentifier,'is.workflow.actions.text.match');
+    const matchParams=match.WFWorkflowActionParameters;
+    assert.equal(matchParams.WFMatchTextPattern,'\\Aimported\\z');assert.equal(matchParams.WFMatchTextCaseSensitive,true);
+    const statusId=matchParams.text.Value.attachmentsByRange['{0, 1}'].OutputUUID;
+    const status=following.find(a=>a.WFWorkflowActionParameters.UUID===statusId).WFWorkflowActionParameters;
+    assert.equal(status.WFDictionaryKey,'status');assert.equal(status.WFInput.Value.OutputUUID,post.WFWorkflowActionParameters.UUID);
+    // ICU's absolute anchors translated for JS; unlike $, the end anchor must
+    // not accept a trailing newline. Keep failure responses out of success.
+    const accepts=value=>new RegExp(matchParams.WFMatchTextPattern.replace(/^\\A/,'^').replace(/\\z$/,'(?![\\s\\S])'),'u').test(value??'');
+    for(const value of ['','failed','not imported','IMPORTED','imported\n',' imported','imported '])assert.equal(accepts(value),false);
+    let rpcError=null;
+    const handler=createSleepHandler({rpc:async()=>({data:rpcError?null:{status:'imported',records:1},error:rpcError}),getUser:async()=>({data:{user:null}}),reportError:()=>{}});
+    const request=(body=JSON.stringify(input([sample('Core')])),token='wedx_'+'a'.repeat(64))=>new Request('https://local/sleep-import',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body});
+    for(const req of [request(),request('{'),request(undefined,'expired-session')]) {
+      const response=await handler(req);assert.equal(accepts((await response.json()).status),response.ok);
+    }
+    rpcError={code:'28000'};const revoked=await handler(request());assert.equal(revoked.status,401);assert.equal(accepts((await revoked.json()).status),false);
   }
   assert.equal(/wedx_[a-f0-9]{64}/.test(JSON.stringify(workflow)),false);
 });

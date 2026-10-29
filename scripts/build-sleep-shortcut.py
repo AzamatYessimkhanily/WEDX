@@ -31,7 +31,7 @@ def build():
                         'WFWorkflowActionParameters': {'UUID': uid, **params}})
         return state('WFTextTokenAttachment', {'Type': 'ActionOutput', 'OutputUUID': uid, 'OutputName': output})
 
-    add('comment', WFCommentActionText='WEDX · Сон · версия 2. Читает последние 3 дня: стадии сна, пульс, вариабельность пульса, дыхание. '
+    add('comment', WFCommentActionText='WEDX · Сон · версия 3. Читает последние 3 дня: стадии сна, пульс, вариабельность пульса, дыхание. '
         'Первый запуск — на разблокированном iPhone. Разреши чтение показателей и отправку в WEDX. '
         'Источники сохраняются отдельно. Данные «Здоровья» команда не меняет. '
         'Температуру запястья и нарушения дыхания можно добавить через экспорт «Здоровья» в разделе «Сон».')
@@ -78,9 +78,14 @@ def build():
                            ('Content-Type', 'application/json', False), ('Authorization', text('Bearer ', key), False)]))
         message = add('getvalueforkey', 'Dictionary Value', WFGetDictionaryValueType='Value', WFDictionaryKey='message', WFInput=response)
         status = add('getvalueforkey', 'Dictionary Value', WFGetDictionaryValueType='Value', WFDictionaryKey='status', WFInput=response)
+        # iOS imported the untyped Dictionary Value equality with a blank
+        # operand, despite WFConditionalActionString being present in the file.
+        # Match the exact success token as text, then use the operand-free If.
+        accepted = add('text.match', 'Matches', text=text(status),
+                       WFMatchTextPattern=r'\Aimported\z', WFMatchTextCaseSensitive=True)
         guard = str(uuid.uuid4()).upper()
-        add('conditional', GroupingIdentifier=guard, WFControlFlowMode=0, WFCondition=4,
-            WFInput={'Type': 'Variable', 'Variable': status}, WFConditionalActionString='imported')
+        add('conditional', GroupingIdentifier=guard, WFControlFlowMode=0, WFCondition=100,
+            WFInput={'Type': 'Variable', 'Variable': accepted})
         add('notification', WFNotificationActionTitle=f'WEDX · Сон · {step}/4 · {title}',
             WFNotificationActionBody=text(message), WFNotificationActionSound=False)
         add('conditional', GroupingIdentifier=guard, WFControlFlowMode=1)

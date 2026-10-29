@@ -137,8 +137,8 @@ class SleepPanel extends HTMLElement {
   setup() {
     const details=el('details',null,'sleep-setup');details.append(el('summary','Подключить сон с Apple Watch'));
     details.append(el('p','Установи отдельную команду «WEDX — Сон». Она передаёт отрезки сна, пульс, вариабельность пульса, дыхание за последние 3 дня. История в WEDX сохраняется.'));
-    const link=el('a','Скачать «WEDX — Сон»');link.href=`${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — Сон.shortcut')}?v=2`;link.target='_blank';link.rel='noopener';details.append(link);
-    details.append(el('p','Версия 2 показывает ход четырёх этапов и останавливается с сообщением при ошибке. Пульс загружается последним: отдельных измерений может быть много.'));
+    const link=el('a','Скачать «WEDX — Сон»');link.href=`${import.meta.env.BASE_URL}shortcuts/${encodeURIComponent('WEDX — Сон.shortcut')}?v=3`;link.target='_blank';link.rel='noopener';details.append(link);
+    details.append(el('p','Версия 3 исправляет остановку после первого этапа. Команда показывает ход четырёх этапов и результат отправки. Пульс загружается последним: отдельных измерений может быть много.'));
     const status=el('p');status.setAttribute('role','status');
     const create=button('Создать ключ для сна',async()=>{
       create.disabled=true;
